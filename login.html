@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Sejuta Tawa - Login Kasir</title>
+    <style>
+        body { font-family: sans-serif; background: #eef2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 40px 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 340px; text-align: center; }
+        h2 { color: #2c3e50; margin-bottom: 5px; }
+        p { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 6px; color: #555; font-size: 14px; font-weight: bold; }
+        .input-group input { width: 100%; padding: 11px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 12px; background: #1abc9c; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .btn-login:hover { background: #16a085; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>☕ Sejuta Tawa</h2>
+        <p>Silakan masuk ke sistem POS kasir</p>
+        <form action="index.html">
+            <div class="input-group">
+                <label>Email ID Kasir</label>
+                <input type="email" placeholder="nama@sejutatawa.com" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-login">Masuk Aplikasi</button>
+        </form>
+    </div>
+</body>
+</html>
