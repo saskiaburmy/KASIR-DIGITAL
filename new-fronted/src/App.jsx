@@ -1241,7 +1241,17 @@ useEffect(() => {
 
       {/* ── CART SIDEBAR ── */}
       {!adminMode && (
-        <div style={{ width: 368, background: C.white, borderLeft: `1px solid ${C.goldLight}`, display: "flex", flexDirection: "column", height: "100vh" }}>
+        <div
+  style={{
+    width: "100%",
+    maxWidth: 368,
+    background: C.white,
+    borderLeft: `1px solid ${C.goldLight}`,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100vh",
+  }}
+>
           <div style={{ padding: 20, borderBottom: `1px solid ${C.creamDark}`, background: C.cream }}>
             <h3 style={{ margin: 0, color: C.crimsonDark, letterSpacing: 0.5 }}>Struk Pesanan Aktif</h3>
             {customerTable ? (
