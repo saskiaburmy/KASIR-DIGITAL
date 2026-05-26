@@ -1347,4 +1347,10 @@ body{
     padding:0 15px;
   }
 
+  .sidebar {
+    display: none !important;
+  }
+  .container-utama {
+    width: 100% !important;
+  }
 }
