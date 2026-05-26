@@ -1353,4 +1353,35 @@ body{
   .container-utama {
     width: 100% !important;
   }
+
+  body{
+  overflow-x:hidden;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+
+  .dashboard{
+    flex-direction:column !important;
+  }
+
+  .menu-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .card{
+    width:100% !important;
+  }
+
+  button{
+    width:100%;
+  }
+
+  img{
+    width:100%;
+    height:auto;
+  }
+
 }
