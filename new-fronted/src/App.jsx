@@ -1,1441 +1,999 @@
 ﻿import "./App.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
-import logo from "./assets/KAFE_KAFEAN_LOGO.jpg";
-import caffe from "./assets/caffe.jpg";
-import cookies from "./assets/cookies.jpg";
-import donat from "./assets/donat.jpg";
-import fries from "./assets/fries.jpg";
-import fudgy from "./assets/fudgy.jpg";
-import hazelnut from "./assets/hazelnut.jpg";
-import lemon from "./assets/lemon.jpg";
-import matcha from "./assets/matcha.jpg";
-import panini from "./assets/panini.jpg";
-import pasta from "./assets/pasta.jpg";
-import salad from "./assets/salad.jpg";
-import stoberi from "./assets/stoberi.jpg";
+import logo       from "./assets/KAFE_KAFEAN_LOGO.jpg";
+import caffe      from "./assets/caffe.jpg";
+import cookies    from "./assets/cookies.jpg";
+import donat      from "./assets/donat.jpg";
+import fries      from "./assets/fries.jpg";
+import fudgy      from "./assets/fudgy.jpg";
+import hazelnut   from "./assets/hazelnut.jpg";
+import lemon      from "./assets/lemon.jpg";
+import matcha     from "./assets/matcha.jpg";
+import panini     from "./assets/panini.jpg";
+import pasta      from "./assets/pasta.jpg";
+import salad      from "./assets/salad.jpg";
+import stoberi    from "./assets/stoberi.jpg";
 import strawberry from "./assets/strawberry.jpg";
-import music from "./assets/alex-morgan-bebop-coffee-shop-517090.mp3";
+import music      from "./assets/alex-morgan-bebop-coffee-shop-517090.mp3";
 
-const currency = (value) => new Intl.NumberFormat("id-ID").format(value || 0);
+const currency = (v) => new Intl.NumberFormat("id-ID").format(v || 0);
 
 const temperatureOptions = ["Panas", "Dingin"];
 const drinkAddOns = ["Es Krim", "Boba", "Espresso Shot"];
-const foodAddOns = ["Extra Keju", "Extra Saus", "Tambahan Sambal"];
+const foodAddOns  = ["Extra Keju", "Extra Saus", "Tambahan Sambal"];
 
-// ── Color Palette ──────────────────────────────────────────────────────────
-const C = {
-  crimson:      "#7B1C1C",
-  crimsonDark:  "#4A0F0F",
-  crimsonLight: "#9B2C2C",
-  parchment:    "#F0EBE3",
-  cream:        "#FAF7F2",
-  creamDark:    "#EDE4D8",
-  gold:         "#C9A96E",
-  goldLight:    "#E8D5B0",
-  charcoal:     "#2C1810",
-  muted:        "#8B7355",
-  mutedLight:   "#B8A898",
-  white:        "#FFFFFF",
-  red:          "#DC2626",
-  green:        "#059669",
-  greenLight:   "#D1FAE5",
-};
-
-const btn = {
-  primary: {
-    background: `linear-gradient(135deg, ${C.crimson} 0%, ${C.crimsonDark} 100%)`,
-    color: C.white, border: "none", borderRadius: 10, fontWeight: "700",
-    cursor: "pointer", letterSpacing: "0.5px",
-    boxShadow: `0 4px 14px rgba(123,28,28,0.35)`, transition: "all 0.2s ease",
-  },
-  secondary: {
-    background: C.parchment, color: C.crimsonDark,
-    border: `1.5px solid ${C.goldLight}`, borderRadius: 10,
-    fontWeight: "600", cursor: "pointer", transition: "all 0.2s ease",
-  },
-  ghost: {
-    background: "transparent", color: C.muted,
-    border: `1.5px solid ${C.creamDark}`, borderRadius: 10,
-    fontWeight: "600", cursor: "pointer", transition: "all 0.2s ease",
-  },
-  danger: {
-    background: `linear-gradient(135deg, #DC2626 0%, #991B1B 100%)`,
-    color: C.white, border: "none", borderRadius: 10, fontWeight: "700",
-    cursor: "pointer", boxShadow: "0 4px 14px rgba(220,38,38,0.3)", transition: "all 0.2s ease",
-  },
-  success: {
-    background: `linear-gradient(135deg, #059669 0%, #047857 100%)`,
-    color: C.white, border: "none", borderRadius: 10, fontWeight: "700",
-    cursor: "pointer", boxShadow: "0 4px 14px rgba(5,150,105,0.3)", transition: "all 0.2s ease",
-  },
-};
-
-const createOrderData = ({
-  customerName, customerPhone, customerTable, paymentMethod,
-  orderType, notes, total, cart, promoCode, discount, tax, service, subtotal,
-}) => {
-  const timestamp = Date.now();
-  return {
-    customerName, customerPhone, customerTable, paymentMethod,
-    orderType, notes, subtotal, total, promoCode, discount, tax, service,
-    orders: cart, timestamp,
-    shortDate: new Date(timestamp).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-    date: new Date(timestamp).toLocaleString("id-ID"),
-  };
+const imageMap = {
+  1: salad, 2: panini, 3: pasta, 4: fries, 5: cookies,
+  6: donat, 7: fudgy, 8: strawberry, 9: stoberi,
+  10: hazelnut, 11: matcha, 12: caffe, 13: lemon,
 };
 
 const initialTables = [
-  { name: "A01",   status: "Kosong" }, { name: "A02",   status: "Kosong" },
-  { name: "A03",   status: "Kosong" }, { name: "A04",   status: "Kosong" },
-  { name: "A05",   status: "Kosong" }, { name: "B01",   status: "Kosong" },
-  { name: "B02",   status: "Kosong" }, { name: "B03",   status: "Kosong" },
-  { name: "B04",   status: "Kosong" }, { name: "B05",   status: "Kosong" },
-  { name: "VIP01", status: "Kosong" }, { name: "VIP02", status: "Kosong" },
+  { name:"A01",status:"Kosong"},{name:"A02",status:"Kosong"},{name:"A03",status:"Kosong"},
+  { name:"A04",status:"Kosong"},{name:"A05",status:"Kosong"},{name:"B01",status:"Kosong"},
+  { name:"B02",status:"Kosong"},{name:"B03",status:"Kosong"},{name:"B04",status:"Kosong"},
+  { name:"B05",status:"Kosong"},{name:"VIP01",status:"Kosong"},{name:"VIP02",status:"Kosong"},
 ];
 
-const initialStockItems = [
-  { id: "coffee",  label: "Biji Kopi", qty: 120, threshold: 20 },
-  { id: "milk",    label: "Susu",      qty: 90,  threshold: 20 },
-  { id: "cup",     label: "Cup",       qty: 70,  threshold: 15 },
-  { id: "tea",     label: "Teh",       qty: 80,  threshold: 15 },
-  { id: "biscuit", label: "Biskuit",   qty: 50,  threshold: 10 },
-  { id: "sugar",   label: "Gula",      qty: 100, threshold: 20 },
+const initialStock = [
+  {id:"coffee",label:"Biji Kopi",qty:120,threshold:20},
+  {id:"milk",  label:"Susu",     qty:90, threshold:20},
+  {id:"cup",   label:"Cup",      qty:70, threshold:15},
+  {id:"tea",   label:"Teh",      qty:80, threshold:15},
+  {id:"biscuit",label:"Biskuit", qty:50, threshold:10},
+  {id:"sugar", label:"Gula",     qty:100,threshold:20},
 ];
 
 const recipeMap = {
-  "Fresh Salad":            [{ id: "biscuit", qty: 1 }, { id: "milk",    qty: 1 }],
-  "Pizza Panini":           [{ id: "cup",     qty: 1 }, { id: "milk",    qty: 1 }],
-  "Creamy Pasta":           [{ id: "milk",    qty: 2 }],
-  "French Fries":           [{ id: "cup",     qty: 1 }],
-  "Chocolate Cookies":      [{ id: "biscuit", qty: 2 }],
-  "Dough Boy":              [{ id: "biscuit", qty: 1 }],
-  "Fudgy Brownies":         [{ id: "milk",    qty: 1 }, { id: "biscuit", qty: 1 }],
-  "Chocolate Strawberry":   [{ id: "biscuit", qty: 1 }, { id: "milk",    qty: 1 }],
-  "Strawberry Crunch Cream":[{ id: "milk",    qty: 1 }],
-  "Hazelnut Coffee":        [{ id: "coffee",  qty: 2 }, { id: "milk",    qty: 1 }, { id: "cup", qty: 1 }],
-  "Matcha Latte":           [{ id: "tea",     qty: 2 }, { id: "milk",    qty: 1 }, { id: "cup", qty: 1 }],
-  "Caffe Latte":            [{ id: "coffee",  qty: 2 }, { id: "milk",    qty: 1 }, { id: "cup", qty: 1 }],
-  "Lemon Tea":              [{ id: "tea",     qty: 1 }, { id: "cup",     qty: 1 }],
+  "Fresh Salad":            [{id:"biscuit",qty:1},{id:"milk",qty:1}],
+  "Pizza Panini":           [{id:"cup",qty:1},{id:"milk",qty:1}],
+  "Creamy Pasta":           [{id:"milk",qty:2}],
+  "French Fries":           [{id:"cup",qty:1}],
+  "Chocolate Cookies":      [{id:"biscuit",qty:2}],
+  "Dough Boy":              [{id:"biscuit",qty:1}],
+  "Fudgy Brownies":         [{id:"milk",qty:1},{id:"biscuit",qty:1}],
+  "Chocolate Strawberry":   [{id:"biscuit",qty:1},{id:"milk",qty:1}],
+  "Strawberry Crunch Cream":[{id:"milk",qty:1}],
+  "Hazelnut Coffee":        [{id:"coffee",qty:2},{id:"milk",qty:1},{id:"cup",qty:1}],
+  "Matcha Latte":           [{id:"tea",qty:2},{id:"milk",qty:1},{id:"cup",qty:1}],
+  "Caffe Latte":            [{id:"coffee",qty:2},{id:"milk",qty:1},{id:"cup",qty:1}],
+  "Lemon Tea":              [{id:"tea",qty:1},{id:"cup",qty:1}],
 };
 
 const initialPromoCodes = [
-  { code: "KAFE10",    type: "percent", amount: 10,    description: "Diskon 10% untuk semua pelanggan",                        active: true },
-  { code: "BARISTA20", type: "fixed",   amount: 20000, description: "Potongan Rp 20.000 untuk pembelian di atas Rp 100.000",   active: true },
+  {code:"KAFE10",   type:"percent",amount:10,   description:"Diskon 10% semua pelanggan",      active:true},
+  {code:"BARISTA20",type:"fixed",  amount:20000,description:"Potongan Rp20.000 min. Rp100.000",active:true},
 ];
 
 const initialMenuItems = [
-  { id: 1,  name: "Fresh Salad",             category: "Food",    image: salad,       price: 28000, sold: 12, status: "Tersedia", hasSizes: false },
-  { id: 2,  name: "Pizza Panini",            category: "Food",    image: panini,      price: 42000, sold: 19, status: "Tersedia", hasSizes: false },
-  { id: 3,  name: "Creamy Pasta",            category: "Food",    image: pasta,       price: 38000, sold: 15, status: "Tersedia", hasSizes: false },
-  { id: 4,  name: "French Fries",            category: "Snack",   image: fries,       price: 18000, sold: 21, status: "Tersedia", hasSizes: false },
-  { id: 5,  name: "Chocolate Cookies",       category: "Snack",   image: cookies,     price: 20000, sold: 7,  status: "Tersedia", hasSizes: false },
-  { id: 6,  name: "Dough Boy",               category: "Snack",   image: donat,       price: 25000, sold: 9,  status: "Tersedia", hasSizes: false },
-  { id: 7,  name: "Fudgy Brownies",          category: "Dessert", image: fudgy,       price: 30000, sold: 13, status: "Tersedia", hasSizes: false },
-  { id: 8,  name: "Chocolate Strawberry",    category: "Dessert", image: strawberry,  price: 33000, sold: 11, status: "Tersedia", hasSizes: false },
-  { id: 9,  name: "Strawberry Crunch Cream", category: "Dessert", image: stoberi,     price: 35000, sold: 5,  status: "Tersedia", hasSizes: false },
-  { id: 10, name: "Hazelnut Coffee",         category: "Drinks",  image: hazelnut,    price: 22000, sold: 30, status: "Tersedia", hasSizes: true,
-    sizes: [{ label: "S", price: 22000 }, { label: "M", price: 27000 }, { label: "L", price: 32000 }] },
-  { id: 11, name: "Matcha Latte",            category: "Drinks",  image: matcha,      price: 24000, sold: 26, status: "Tersedia", hasSizes: true,
-    sizes: [{ label: "S", price: 24000 }, { label: "M", price: 29000 }, { label: "L", price: 34000 }] },
-  { id: 12, name: "Caffe Latte",             category: "Drinks",  image: caffe,       price: 21000, sold: 18, status: "Tersedia", hasSizes: true,
-    sizes: [{ label: "S", price: 21000 }, { label: "M", price: 26000 }, { label: "L", price: 31000 }] },
-  { id: 13, name: "Lemon Tea",               category: "Drinks",  image: lemon,       price: 18000, sold: 14, status: "Tersedia", hasSizes: true,
-    sizes: [{ label: "S", price: 18000 }, { label: "M", price: 22000 }, { label: "L", price: 26000 }] },
+  {id:1, name:"Fresh Salad",            category:"Food",   image:salad,      price:28000,sold:12,status:"Tersedia",hasSizes:false},
+  {id:2, name:"Pizza Panini",           category:"Food",   image:panini,     price:42000,sold:19,status:"Tersedia",hasSizes:false},
+  {id:3, name:"Creamy Pasta",           category:"Food",   image:pasta,      price:38000,sold:15,status:"Tersedia",hasSizes:false},
+  {id:4, name:"French Fries",           category:"Snack",  image:fries,      price:18000,sold:21,status:"Tersedia",hasSizes:false},
+  {id:5, name:"Chocolate Cookies",      category:"Snack",  image:cookies,    price:20000,sold:7, status:"Tersedia",hasSizes:false},
+  {id:6, name:"Dough Boy",              category:"Snack",  image:donat,      price:25000,sold:9, status:"Tersedia",hasSizes:false},
+  {id:7, name:"Fudgy Brownies",         category:"Dessert",image:fudgy,      price:30000,sold:13,status:"Tersedia",hasSizes:false},
+  {id:8, name:"Chocolate Strawberry",   category:"Dessert",image:strawberry, price:33000,sold:11,status:"Tersedia",hasSizes:false},
+  {id:9, name:"Strawberry Crunch Cream",category:"Dessert",image:stoberi,    price:35000,sold:5, status:"Tersedia",hasSizes:false},
+  {id:10,name:"Hazelnut Coffee",        category:"Drinks", image:hazelnut,   price:22000,sold:30,status:"Tersedia",hasSizes:true,
+   sizes:[{label:"S",price:22000},{label:"M",price:27000},{label:"L",price:32000}]},
+  {id:11,name:"Matcha Latte",           category:"Drinks", image:matcha,     price:24000,sold:26,status:"Tersedia",hasSizes:true,
+   sizes:[{label:"S",price:24000},{label:"M",price:29000},{label:"L",price:34000}]},
+  {id:12,name:"Caffe Latte",            category:"Drinks", image:caffe,      price:21000,sold:18,status:"Tersedia",hasSizes:true,
+   sizes:[{label:"S",price:21000},{label:"M",price:26000},{label:"L",price:31000}]},
+  {id:13,name:"Lemon Tea",              category:"Drinks", image:lemon,      price:18000,sold:14,status:"Tersedia",hasSizes:true,
+   sizes:[{label:"S",price:18000},{label:"M",price:22000},{label:"L",price:26000}]},
 ];
 
-// ── TOP SELLING CHART COMPONENT ────────────────────────────────────────────
-function TopSellingChart({ menuItems, history }) {
-  const salesMap = {};
-  menuItems.forEach(m => { salesMap[m.name] = m.sold || 0; });
-  history.filter(o => o.status !== "Dibatalkan").forEach(order => {
-    (order.orders || []).forEach(item => {
-      salesMap[item.name] = (salesMap[item.name] || 0) + (item.qty || 1);
-    });
-  });
-
-  const sorted = Object.entries(salesMap)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 7);
-
-  const maxVal = sorted[0]?.count || 1;
-
-  const barColors = [
-    `linear-gradient(180deg, ${C.crimson}, ${C.crimsonDark})`,
-    `linear-gradient(180deg, ${C.gold}, #A8763E)`,
-    `linear-gradient(180deg, #9B2C2C, #7B1C1C)`,
-    `linear-gradient(180deg, #C9A96E, #A8763E)`,
-    `linear-gradient(180deg, #B45309, #92400E)`,
-    `linear-gradient(180deg, #7C2D12, #431407)`,
-    `linear-gradient(180deg, #D97706, #B45309)`,
-  ];
-
-  const chartH = 200;
-
+/* ─── TOAST ─────────────────────────────────────────────────────── */
+function Toast({ toast }) {
+  if (!toast) return null;
   return (
-    <div style={{
-      background: C.white, borderRadius: 16, padding: 24,
-      border: `1px solid ${C.goldLight}`,
-      boxShadow: `0 4px 20px rgba(123,28,28,0.07)`,
-      marginTop: 24,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <span style={{ fontSize: 22 }}>🏆</span>
-        <div>
-          <h3 style={{ margin: 0, color: C.crimsonDark, fontSize: 16, letterSpacing: 0.5 }}>Menu Paling Terlaris</h3>
-          <small style={{ color: C.muted }}>Berdasarkan total penjualan kumulatif</small>
-        </div>
-      </div>
+    <div className={`toast ${toast.type === "warning" ? "toast-warn" : "toast-ok"}`}>
+      {toast.type === "warning" ? "⚠ " : "✓ "}{toast.message}
+    </div>
+  );
+}
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: chartH + 30, paddingBottom: 30, position: "relative" }}>
-        {[0, 25, 50, 75, 100].map(pct => (
-          <div key={pct} style={{
-            position: "absolute", left: 0, right: 0,
-            bottom: 30 + (pct / 100) * chartH,
-            borderTop: `1px dashed ${C.creamDark}`,
-            zIndex: 0,
-          }}>
-            <span style={{ position: "absolute", left: -4, top: -9, fontSize: 9, color: C.mutedLight, transform: "translateX(-100%)" }}>
-              {Math.round((pct / 100) * maxVal)}
-            </span>
-          </div>
-        ))}
-
-        {sorted.map((item, i) => {
-          const barH = Math.max(8, Math.round((item.count / maxVal) * chartH));
-          const shortName = item.name.length > 10 ? item.name.substring(0, 9) + "…" : item.name;
-          return (
-            <div key={item.name} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
-              <div style={{
-                fontSize: 11, fontWeight: "700", color: C.crimson,
-                marginBottom: 4, background: C.parchment,
-                padding: "2px 6px", borderRadius: 10,
-                border: `1px solid ${C.goldLight}`,
-              }}>{item.count}</div>
-              <div style={{
-                width: "100%", height: barH,
-                background: barColors[i % barColors.length],
-                borderRadius: "6px 6px 0 0",
-                boxShadow: `0 -2px 8px rgba(123,28,28,0.2)`,
-                transition: "height 0.4s ease",
-                position: "relative",
-                overflow: "hidden",
-              }}>
-                <div style={{
-                  position: "absolute", top: 0, left: 0, right: 0, height: "40%",
-                  background: "rgba(255,255,255,0.15)", borderRadius: "6px 6px 0 0",
-                }} />
-              </div>
-              <div style={{
-                position: "absolute", bottom: -28, fontSize: 9, color: C.charcoal,
-                textAlign: "center", fontWeight: "600", width: "100%",
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                letterSpacing: 0.2,
-              }}>{shortName}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ marginTop: 16, borderTop: `1px solid ${C.creamDark}`, paddingTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-        {sorted.map((item, i) => (
-          <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: barColors[i % barColors.length] }} />
-              <span style={{ fontSize: 12, color: C.charcoal }}>{i + 1}. {item.name}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                height: 6, width: Math.max(20, Math.round((item.count / maxVal) * 120)),
-                background: barColors[i % barColors.length], borderRadius: 3,
-              }} />
-              <span style={{ fontSize: 12, fontWeight: "700", color: C.crimson, minWidth: 28, textAlign: "right" }}>{item.count}</span>
-            </div>
-          </div>
-        ))}
+/* ─── MODAL WRAPPER ──────────────────────────────────────────────── */
+function Modal({ onClose, children, wide }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className={`modal-box ${wide ? "modal-wide" : ""}`} onClick={e => e.stopPropagation()}>
+        {children}
       </div>
     </div>
   );
 }
 
-// ── DIGITAL RECEIPT MODAL ──────────────────────────────────────────────────
-function DigitalReceiptModal({ order, onPrintPhysical, onClose }) {
+/* ─── RECEIPT MODAL ──────────────────────────────────────────────── */
+function ReceiptModal({ order, onPrint, onClose }) {
   if (!order) return null;
-  const orderId = `ST-${order.timestamp?.toString().slice(-6) || "000000"}`;
-
+  const id = `ST-${String(order.timestamp).slice(-6)}`;
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(44,24,16,0.75)",
-      display: "flex", justifyContent: "center", alignItems: "center",
-      zIndex: 999, padding: 20,
-    }}>
-      <div style={{
-        background: C.cream, borderRadius: 20, width: "100%", maxWidth: 420,
-        boxShadow: `0 24px 60px rgba(74,15,15,0.45)`,
-        border: `1px solid ${C.goldLight}`,
-        maxHeight: "92vh", overflowY: "auto",
-      }}>
-        <div style={{
-          background: `linear-gradient(135deg, ${C.crimsonDark}, ${C.crimson})`,
-          padding: "24px 24px 20px", borderRadius: "20px 20px 0 0",
-          textAlign: "center", position: "relative",
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: "rgba(255,255,255,0.15)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 10px", fontSize: 26, border: `2px solid rgba(255,255,255,0.3)`,
-          }}>✅</div>
-          <h3 style={{ margin: 0, color: C.goldLight, fontSize: 18, letterSpacing: 1 }}>Pembayaran Berhasil!</h3>
-          <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.7)", fontSize: 12 }}>Terima kasih telah berbelanja</p>
+    <Modal onClose={onClose}>
+      <div className="receipt-header">
+        <div className="receipt-icon">✅</div>
+        <h3>Pembayaran Berhasil!</h3>
+        <p>Terima kasih telah berbelanja</p>
+      </div>
+      <div className="receipt-body">
+        <div className="receipt-store">
+          <strong>☕ SEJUTA TAWA</strong>
+          <small>est. 2010 • {id}</small>
         </div>
 
-        <div style={{ padding: "0 24px 24px" }}>
-          <div style={{
-            textAlign: "center", paddingTop: 20, paddingBottom: 16,
-            borderBottom: `2px dashed ${C.goldLight}`,
-          }}>
-            <p style={{ margin: 0, fontWeight: "800", color: C.crimsonDark, fontSize: 16, letterSpacing: 2 }}>☕ SEJUTA TAWA</p>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: C.muted }}>est. 2010 — Kafe Premium Lokal</p>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: C.muted }}>Nomor Order: <strong style={{ color: C.crimson }}>{orderId}</strong></p>
-          </div>
-
-          <div style={{ padding: "14px 0", borderBottom: `1px dashed ${C.goldLight}`, display: "flex", flexDirection: "column", gap: 5 }}>
-            {[
-              { label: "Pelanggan",    value: order.customerName  || "—" },
-              { label: "Meja",         value: order.customerTable || "Takeaway" },
-              { label: "Tipe Pesanan", value: order.orderType     || "—" },
-              { label: "Pembayaran",   value: order.paymentMethod || "—" },
-              { label: "Tanggal",      value: order.date          || "—" },
-            ].map(row => (
-              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: C.muted }}>{row.label}</span>
-                <span style={{ color: C.charcoal, fontWeight: "600" }}>{row.value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ padding: "14px 0", borderBottom: `1px dashed ${C.goldLight}` }}>
-            <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: "700", color: C.muted, letterSpacing: 1 }}>DETAIL PESANAN</p>
-            {(order.orders || []).map((item, i) => (
-              <div key={i} style={{
-                display: "flex", justifyContent: "space-between",
-                alignItems: "flex-start", marginBottom: 8,
-              }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: "700", color: C.charcoal }}>
-                    {item.name} {item.size ? `(${item.size})` : ""}
-                  </p>
-                  {item.modifiers && (
-                    <p style={{ margin: "2px 0 0", fontSize: 10, color: C.mutedLight }}>
-                      {[item.modifiers.temp, item.modifiers.sweetness, ...(item.modifiers.addOns || [])].filter(Boolean).join(" • ")}
-                    </p>
-                  )}
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: C.muted }}>
-                    {item.qty} × Rp {currency(item.price)}
-                  </p>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: "700", color: C.crimsonDark, marginLeft: 10 }}>
-                  Rp {currency(item.price * item.qty)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ padding: "14px 0", borderBottom: `2px dashed ${C.goldLight}` }}>
-            {[
-              { label: "Subtotal",     value: `Rp ${currency(order.subtotal)}` },
-              { label: "Pajak (11%)",  value: `Rp ${currency(order.tax)}` },
-              { label: "Service Fee",  value: `Rp ${currency(order.service)}` },
-            ].map(row => (
-              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.muted, marginBottom: 5 }}>
-                <span>{row.label}</span><span>{row.value}</span>
-              </div>
-            ))}
-            {order.discount > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.red, marginBottom: 5 }}>
-                <span>Diskon ({order.promoCode})</span><span>- Rp {currency(order.discount)}</span>
-              </div>
-            )}
-          </div>
-
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "16px 0 12px",
-          }}>
-            <span style={{ fontSize: 15, fontWeight: "700", color: C.charcoal }}>TOTAL BAYAR</span>
-            <span style={{ fontSize: 22, fontWeight: "800", color: C.crimson, letterSpacing: 0.5 }}>
-              Rp {currency(order.total)}
-            </span>
-          </div>
-
-          <div style={{
-            textAlign: "center", padding: "12px 0",
-            borderTop: `1px dashed ${C.goldLight}`,
-            marginBottom: 16,
-          }}>
-            <div style={{ display: "flex", justifyContent: "center", gap: 2, marginBottom: 6 }}>
-              {Array.from({ length: 28 }).map((_, i) => (
-                <div key={i} style={{
-                  width: i % 3 === 0 ? 3 : i % 5 === 0 ? 1 : 2,
-                  height: 28, background: C.charcoal, borderRadius: 1,
-                  opacity: 0.7 + (i % 4) * 0.075,
-                }} />
-              ))}
+        <div className="receipt-section">
+          {[
+            ["Pelanggan", order.customerName || "—"],
+            ["Meja",      order.customerTable || "Takeaway"],
+            ["Tipe",      order.orderType     || "—"],
+            ["Bayar",     order.paymentMethod || "—"],
+            ["Tanggal",   order.date          || "—"],
+          ].map(([k,v]) => (
+            <div key={k} className="receipt-row">
+              <span className="receipt-label">{k}</span>
+              <span className="receipt-value">{v}</span>
             </div>
-            <p style={{ margin: 0, fontSize: 9, color: C.mutedLight, letterSpacing: 2 }}>{orderId}</p>
-          </div>
+          ))}
+        </div>
 
-          <p style={{ textAlign: "center", fontSize: 11, color: C.muted, marginBottom: 20, fontStyle: "italic" }}>
-            Terima kasih sudah berkunjung ke Sejuta Tawa 🙏<br />
-            Semoga hari Anda menyenangkan!
-          </p>
+        <div className="receipt-section">
+          <p className="section-title">DETAIL PESANAN</p>
+          {(order.orders || []).map((item, i) => (
+            <div key={i} className="order-line">
+              <div>
+                <strong>{item.name}{item.size ? ` (${item.size})` : ""}</strong>
+                <small>{item.qty} × Rp {currency(item.price)}</small>
+              </div>
+              <span>Rp {currency(item.price * item.qty)}</span>
+            </div>
+          ))}
+        </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <button
-              onClick={onPrintPhysical}
-              style={{ ...btn.primary, width: "100%", padding: 13, fontSize: 13, letterSpacing: 0.5, fontFamily: "inherit" }}
-              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-            >🖨️ Cetak Struk Fisik</button>
-            <button
-              onClick={onClose}
-              style={{ ...btn.ghost, width: "100%", padding: 13, fontSize: 13, fontFamily: "inherit" }}
-            >✕ Tutup Struk</button>
-          </div>
+        <div className="receipt-section">
+          {[
+            ["Subtotal",    `Rp ${currency(order.subtotal)}`],
+            ["Pajak (11%)", `Rp ${currency(order.tax)}`],
+            ["Service Fee", `Rp ${currency(order.service)}`],
+          ].map(([k,v]) => (
+            <div key={k} className="receipt-row">
+              <span className="receipt-label">{k}</span>
+              <span className="receipt-value">{v}</span>
+            </div>
+          ))}
+          {order.discount > 0 && (
+            <div className="receipt-row discount">
+              <span>Diskon ({order.promoCode})</span>
+              <span>- Rp {currency(order.discount)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="receipt-total">
+          <span>TOTAL BAYAR</span>
+          <span>Rp {currency(order.total)}</span>
+        </div>
+
+        <div className="receipt-actions">
+          <button className="btn-primary" onClick={onPrint}>🖨 Cetak Struk</button>
+          <button className="btn-ghost"   onClick={onClose}>Tutup</button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
-// ── MAIN APP ───────────────────────────────────────────────────────────────
-function App() {
-  // ── STATE ────────────────────────────────────────────────────────────────
-  const [loading,          setLoading]          = useState(true);
-  const [loggedIn,         setLoggedIn]         = useState(false);
-  const [adminMode,        setAdminMode]        = useState(false);
-  const [showReceipt,      setShowReceipt]      = useState(false);
-  const [search,           setSearch]           = useState("");
-  const [paymentMethod,    setPaymentMethod]    = useState("Tunai");
-  const [isRegisterMode,   setIsRegisterMode]   = useState(false);
-  const [activeCategory,   setActiveCategory]   = useState("All");
-  const [customerName,     setCustomerName]     = useState("");
-  const [customerPhone,    setCustomerPhone]    = useState("");
-  const [customerTable,    setCustomerTable]    = useState("");
-  const [notes,            setNotes]            = useState("");
-  const [tables,           setTables]           = useState(initialTables);
-  const [menuItems,        setMenuItems]        = useState([]);
-  const [stockItems,       setStockItems]       = useState(initialStockItems);
-  const [promoCodes,       setPromoCodes]       = useState(initialPromoCodes);
-  const [adminTab,         setAdminTab]         = useState("Ringkasan");
-  const [loginUsername,    setLoginUsername]    = useState("");
-  const [loginPassword,    setLoginPassword]    = useState("");
-  const [keranjang, setKeranjang] = useState([]);
-  const [userRole,         setUserRole]         = useState("");
-  const [toast,            setToast]            = useState(null);
-  const [promoCode,        setPromoCode]        = useState("");
-  const [promoDiscount,    setPromoDiscount]    = useState(0);
-  const [userMenuSelection,setUserMenuSelection]= useState("Kasir Utama");
-  const [orderType,        setOrderType]        = useState("Dine-In");
-  const [showModifiers,    setShowModifiers]    = useState(false);
-  const [modifierItem,     setModifierItem]     = useState(null);
-  const [modifierState,    setModifierState]    = useState({ size: null, addOns: [], temp: "Dingin", sweetness: "Normal", notes: "" });
-  const [taxRate]                               = useState(0.11);
-  const [serviceRate]                           = useState(0.05);
-  const [history,          setHistory]          = useState([]);
-  const [menuForm,         setMenuForm]         = useState({
-    id: null, name: "", price: "", category: "Food", image: "",
-    status: "Tersedia", hasSizes: false,
-    sizes: [{ label: "S", price: 0 }, { label: "M", price: 0 }, { label: "L", price: 0 }],
-  });
-  const [cart,             setCart]             = useState([]);
-  const [selectedSizes,    setSelectedSizes]    = useState({});
-  const [editingMenuId,    setEditingMenuId]    = useState(null);
-  const [isMusicPlaying,   setIsMusicPlaying]   = useState(true);
-  const audioRef = useRef(null);
-
-  // ── EFFECTS ──────────────────────────────────────────────────────────────
-
- // Fetch menu dari backend (jika tersedia), fallback ke initialMenuItems
-useEffect(() => {
-  fetch("http://localhost:5000/api/menu")
-    .then(res => res.json())
-    .then(data => {
-      const merged = initialMenuItems.map(localItem => {
-        const backendItem = data.find(b => b.id === localItem.id);
-        return backendItem
-          ? { ...localItem, price: backendItem.price, name: backendItem.name }
-          : localItem;
-      });
-      setMenuItems(merged);
-    })
-    .catch(() => setMenuItems(initialMenuItems));
-}, []);
-  // Loading screen timer
-  useEffect(() => { setTimeout(() => setLoading(false), 1500); }, []);
-
-  // ── HANDLERS ─────────────────────────────────────────────────────────────
-
-  const toggleMusic = () => {
-    if (!audioRef.current) return;
-    if (isMusicPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsMusicPlaying(prev => !prev);
-  };
-
-  const handleSizeSelect = (item, size) =>
-    setSelectedSizes(prev => ({ ...prev, [item.name]: size }));
-
-  const sendToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3200);
-  };
-
-  const isGmail = (value) =>
-    typeof value === "string" && /^[^\s@]+@gmail\.com$/i.test(value);
-
-  const handleLogin = () => {
-    if (!isGmail(loginUsername)) { sendToast("Masukkan alamat Gmail yang valid", "warning"); return; }
-    if (!loginPassword)          { sendToast("Masukkan password Anda", "warning"); return; }
-    setLoggedIn(true);
-    const role = loginUsername.toLowerCase() === "admin@gmail.com" ? "Admin" : "Kasir";
-    setUserRole(role);
-    sendToast(`Login berhasil sebagai ${role}`);
-  };
-
-  const handleRegister = () => {
-    if (!isGmail(loginUsername)) { sendToast("Masukkan alamat Gmail yang valid", "warning"); return; }
-    if (!loginPassword)          { sendToast("Masukkan password Anda", "warning"); return; }
-    sendToast("Registrasi berhasil (Simulasi)");
-    setIsRegisterMode(false);
-    setLoginPassword("");
-  };
-
-  const getPromo = (code) =>
-    promoCodes.find(p => p.code.toUpperCase() === code.trim().toUpperCase());
-
-  const calculatePromoDiscount = (total, code) => {
-    const promo = getPromo(code);
-    if (!promo || !promo.active) return 0;
-    if (promo.type === "percent") return Math.round((total * promo.amount) / 100);
-    return promo.amount;
-  };
-
-  const applyPromoCode = () => {
-    if (!promoCode) { sendToast("Masukkan kode promo terlebih dahulu", "warning"); return; }
-    const promo = getPromo(promoCode);
-    if (!promo)     { sendToast("Kode promo tidak valid", "warning"); setPromoDiscount(0); return; }
-    const discount = calculatePromoDiscount(total, promoCode);
-    setPromoDiscount(discount);
-    sendToast(`Promo ${promo.code} aktif: Rp ${discount.toLocaleString()}`);
-  };
-
-  const updateStockAfterOrder = (cartItems) => {
-    const updated = stockItems.map(stock => {
-      const usage = cartItems.reduce((sum, cartItem) => {
-        const recipe     = recipeMap[cartItem.name] || [];
-        const ingredient = recipe.find(r => r.id === stock.id);
-        if (!ingredient) return sum;
-        return sum + ingredient.qty * cartItem.qty;
-      }, 0);
-      return { ...stock, qty: Math.max(0, stock.qty - usage) };
-    });
-    setStockItems(updated);
-  };
-
-  const toggleTableStatus = (tableName) => {
-    setTables(prev => prev.map(table =>
-      table.name === tableName
-        ? { ...table, status: table.status === "Kosong" ? "Terisi" : "Kosong" }
-        : table
-    ));
-  };
-
-  const startEditMenu = (item) => {
-    setEditingMenuId(item.id);
-    setMenuForm({
-      ...item, price: item.price.toString(),
-      sizes: item.sizes || [{ label: "S", price: 0 }, { label: "M", price: 0 }, { label: "L", price: 0 }],
-    });
-  };
-
-  const saveMenuUpdate = () => {
-    setMenuItems(prev => prev.map(item =>
-      item.id === editingMenuId ? { ...item, ...menuForm, price: Number(menuForm.price) } : item
-    ));
-    setEditingMenuId(null);
-    sendToast("Menu berhasil diperbarui");
-  };
-
-  const deleteMenuItem = (id) => {
-    setMenuItems(prev => prev.filter(item => item.id !== id));
-    sendToast("Menu berhasil dihapus");
-  };
-
-  const updateStockQty = (id, value) => {
-    setStockItems(prev => prev.map(stock =>
-      stock.id === id ? { ...stock, qty: Math.max(0, Number(value)) } : stock
-    ));
-  };
-
-  const voidOrder = (index) => {
-    setHistory(prev => prev.map((item, idx) =>
-      idx === index ? { ...item, status: "Dibatalkan" } : item
-    ));
-    sendToast("Pesanan dibatalkan", "warning");
-  };
-
-  const printReceipt = (order) => {
-    if (!order) return;
-    const popup = window.open("", "_blank", "width=420,height=700");
-    const itemsHtml = (order.orders || []).map(it => `
-      <div style="display:flex;justify-content:space-between;font-family:monospace;margin-bottom:6px;">
-        <div>${it.name}${it.size ? " (" + it.size + ")" : ""} x${it.qty}</div>
-        <div>Rp ${it.price.toLocaleString()}</div>
-      </div>`).join("");
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Struk</title>
-      <style>
-        body{font-family:Arial,sans-serif;padding:10px;color:#000}
-        .paper{width:320px;margin:0 auto;border-top:2px dashed #333;border-bottom:2px dashed #333;padding:12px}
-        .items{font-family:monospace;margin-top:12px}
-        .total{display:flex;justify-content:space-between;font-weight:800;margin-top:12px;font-size:16px;padding-top:10px;border-top:1px dashed #333}
-      </style>
-      </head><body>
-      <div class="paper">
-        <h3 style="text-align:center;margin:0 0 4px;letter-spacing:2px">SEJUTA TAWA</h3>
-        <p style="text-align:center;font-size:12px;color:#555;margin:0 0 12px">est. 2010</p>
-        <div>Nama: ${order.customerName || "-"}</div>
-        <div>Meja: ${order.customerTable || "-"}</div>
-        <div>Tgl: ${order.date || ""}</div>
-        <div>Pembayaran: ${order.paymentMethod || ""}</div>
-        <div class="items">${itemsHtml}</div>
-        <div style="margin-top:8px;font-size:12px;color:#555">Pajak: Rp ${order.tax?.toLocaleString() || 0}</div>
-        <div style="font-size:12px;color:#555">Service: Rp ${order.service?.toLocaleString() || 0}</div>
-        ${order.discount > 0 ? `<div style="font-size:12px;color:#dc2626">Diskon: -Rp ${order.discount?.toLocaleString() || 0}</div>` : ""}
-        <div class="total"><div>TOTAL</div><div>Rp ${order.total?.toLocaleString() || 0}</div></div>
-        <p style="text-align:center;font-size:11px;color:#777;margin-top:16px">Terima kasih telah berkunjung!</p>
-      </div>
-      <script>window.print();setTimeout(()=>window.close(),500);</script>
-      </body></html>`;
-    popup.document.write(html);
-    popup.document.close();
-  };
-
-  const filteredMenu = menuItems.filter(item => {
-    const categoryMatch = activeCategory === "All" ? true : item.category === activeCategory;
-    const searchMatch   = item.name.toLowerCase().includes(search.toLowerCase());
-    return categoryMatch && searchMatch;
+/* ─── MODIFIER MODAL ─────────────────────────────────────────────── */
+function ModifierModal({ item, onAdd, onClose }) {
+  const [state, setState] = useState({
+    size:      item.sizes ? item.sizes[0] : null,
+    temp:      "Dingin",
+    sweetness: "Normal",
+    addOns:    [],
+    notes:     "",
   });
 
-  const addToCart = (item, size = null) => {
-    if (item.status === "Habis") { sendToast("Menu ini sedang habis", "warning"); return; }
-    const chosenSize = size || selectedSizes[item.name] || item.sizes?.[0];
-    const newItem    = { id: item.id, name: item.name, size: chosenSize?.label || "", price: chosenSize?.price || item.price, qty: 1 };
-    setCart(prev => [...prev, newItem]);
-    sendToast(`${item.name} masuk keranjang`);
-  };
+  const toggleAddOn = (t) =>
+    setState(p => ({ ...p, addOns: p.addOns.includes(t) ? p.addOns.filter(x=>x!==t) : [...p.addOns, t] }));
 
-  const openModifiers = (item) => {
-    setModifierItem(item);
-    setModifierState({ size: item.sizes ? item.sizes[0] : null, addOns: [], temp: "Dingin", sweetness: "Normal", notes: "" });
-    setShowModifiers(true);
-  };
+  const price = state.size?.price || item.price;
 
-  const closeModifiers = () => { setShowModifiers(false); setModifierItem(null); };
-
-  const toggleTopping = (t) => {
-    setModifierState(prev => {
-      const has = prev.addOns.includes(t);
-      return { ...prev, addOns: has ? prev.addOns.filter(x => x !== t) : [...prev.addOns, t] };
-    });
-  };
-
-  const addCustomizedToCart = () => {
-    if (!modifierItem) return;
-    const chosenSize = modifierState.size;
-    const price      = chosenSize?.price || modifierItem.price;
-    const custom     = {
-      id: modifierItem.id, name: modifierItem.name, size: chosenSize?.label || "", price, qty: 1,
-      modifiers: {
-        temp:      modifierItem.category === "Drinks" ? modifierState.temp      : undefined,
-        sweetness: modifierItem.category === "Drinks" ? modifierState.sweetness : undefined,
-        addOns:    modifierState.addOns,
-        notes:     modifierState.notes,
-      },
-    };
-    setCart(prev => [...prev, custom]);
-    sendToast(`${modifierItem.name} (kustom) masuk`);
-    closeModifiers();
-  };
-
-  const total    = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const subtotal = total;
-
-  const handleCheckout = () => {
-    if (cart.length === 0)                          { sendToast("Tambahkan menu dulu sebelum checkout", "warning"); return; }
-    if (orderType === "Dine-In" && !customerTable)  { sendToast("Pilih meja terlebih dahulu", "warning"); return; }
-    const discount   = calculatePromoDiscount(total, promoCode);
-    const tax        = Math.round(total * taxRate);
-    const service    = orderType === "Dine-In" ? Math.round(total * serviceRate) : 0;
-    const finalTotal = Math.max(0, total + tax + service - discount);
-    const orderData  = createOrderData({
-      customerName, customerPhone, customerTable, paymentMethod,
-      orderType, notes, subtotal, total: finalTotal, cart,
-      promoCode: promoCode || "", discount, tax, service,
-    });
-    setHistory(prev => [orderData, ...prev]);
-    updateStockAfterOrder(cart);
-    setShowReceipt(true);
-    setCart([]);
-    setPromoCode("");
-    setPromoDiscount(0);
-    setNotes("");
-  };
-
-  const handleTambahMenu = () => {
-    if (!menuForm.name || !menuForm.price) { sendToast("Nama dan harga wajib diisi", "warning"); return; }
-    const newItem = {
-      id: Date.now(), name: menuForm.name, category: menuForm.category,
-      image: menuForm.image || "", price: Number(menuForm.price),
-      sold: 0, status: "Tersedia", hasSizes: false,
-    };
-    setMenuItems(prev => [...prev, newItem]);
-    setMenuForm({
-      id: null, name: "", price: "", category: "Food", image: "",
-      status: "Tersedia", hasSizes: false,
-      sizes: [{ label: "S", price: 0 }, { label: "M", price: 0 }, { label: "L", price: 0 }],
-    });
-    sendToast("Menu baru berhasil ditambahkan!");
-  };
-
-  // ── DERIVED VALUES ────────────────────────────────────────────────────────
-  const latestOrder  = history[0] || null;
-  const totalRevenue = history.filter(o => o.status !== "Dibatalkan").reduce((acc, o) => acc + o.total, 0);
-  const orderCount   = history.filter(o => o.status !== "Dibatalkan").length;
-
-  // ── SHARED STYLES ─────────────────────────────────────────────────────────
-  const inputStyle = {
-    padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${C.goldLight}`,
-    background: C.cream, color: C.charcoal, fontSize: 13, outline: "none", fontFamily: "inherit",
-  };
-
-  // ── LOADING SCREEN ────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div style={{
-        background: `linear-gradient(135deg, ${C.crimsonDark} 0%, ${C.crimson} 60%, ${C.charcoal} 100%)`,
-        color: C.cream, display: "flex", flexDirection: "column", justifyContent: "center",
-        alignItems: "center", height: "100vh", fontFamily: "Georgia, serif",
-      }}>
-        <div style={{
-          width: 130, height: 130, borderRadius: "50%",
-          border: `3px solid ${C.gold}`, padding: 4,
-          boxShadow: `0 0 40px rgba(201,169,110,0.4)`,
-          animation: "spin 3s linear infinite",
-        }}>
-          <img src={logo} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-        </div>
-        <h1 style={{ letterSpacing: 6, marginTop: 24, fontWeight: 400, fontSize: 28, color: C.goldLight }}>SEJUTA TAWA</h1>
-        <p style={{ color: C.mutedLight, letterSpacing: 2, fontSize: 12, marginTop: 4 }}>Memuat Tampilan Premium...</p>
-        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
-      </div>
-    );
-  }
-
-  // ── LOGIN SCREEN ──────────────────────────────────────────────────────────
-  if (!loggedIn) {
-    return (
-      <div style={{
-        background: `linear-gradient(145deg, ${C.crimsonDark} 0%, ${C.charcoal} 50%, ${C.crimson} 100%)`,
-        display: "flex", justifyContent: "center", alignItems: "center",
-        height: "100vh", fontFamily: "Georgia, serif",
-      }}>
-        <div style={{
-          background: C.cream, padding: 44, borderRadius: 20, width: 380, textAlign: "center",
-          boxShadow: `0 20px 60px rgba(74,15,15,0.5)`, border: `1px solid ${C.goldLight}`,
-        }}>
-          <div style={{
-            width: 88, height: 88, borderRadius: "50%", margin: "0 auto 16px",
-            border: `3px solid ${C.gold}`, padding: 3,
-            boxShadow: `0 4px 20px rgba(123,28,28,0.3)`,
-          }}>
-            <img src={logo} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-          </div>
-          <h2 style={{ color: C.crimsonDark, margin: "0 0 4px", fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>
-            {isRegisterMode ? "Daftar Akun Baru" : "Sejuta Tawa POS"}
-          </h2>
-          <p style={{ color: C.muted, fontSize: 13, marginBottom: 28, letterSpacing: 0.3 }}>
-            {isRegisterMode ? "Buat akun kasir baru" : "Silakan login untuk masuk sistem kasir"}
-          </p>
-          <input
-            type="email" placeholder="Email Gmail" value={loginUsername}
-            onChange={e => setLoginUsername(e.target.value)}
-            style={{ ...inputStyle, width: "100%", marginBottom: 12, boxSizing: "border-box" }}
-          />
-          <input
-            type="password" placeholder="Password" value={loginPassword}
-            onChange={e => setLoginPassword(e.target.value)}
-            style={{ ...inputStyle, width: "100%", marginBottom: 24, boxSizing: "border-box" }}
-          />
-          <button
-            onClick={isRegisterMode ? handleRegister : handleLogin}
-            style={{ ...btn.primary, width: "100%", padding: "13px 0", fontSize: 14, borderRadius: 10, letterSpacing: 1.5 }}
-            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-          >{isRegisterMode ? "✦ DAFTAR SEKARANG" : "✦ MASUK KE KASIR"}</button>
-          <p
-            style={{ marginTop: 18, color: C.crimson, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}
-            onClick={() => setIsRegisterMode(!isRegisterMode)}
-          >
-            {isRegisterMode ? "Sudah punya akun? Login di sini" : "Belum punya akun? Daftar di sini"}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── MAIN APP ──────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      display: "flex", height: "100vh", background: C.parchment,
-      fontFamily: "Georgia, 'Times New Roman', serif", overflow: "hidden",
-    }}>
-      <audio ref={audioRef} autoPlay loop src={music} />
+    <Modal onClose={onClose}>
+      <div className="modal-title">
+        <strong>Kustom — {item.name}</strong>
+        <button className="btn-icon" onClick={onClose}>✕</button>
+      </div>
 
-      {/* ── SIDEBAR ── */}
-      <div style={{
-        width: 248,
-        background: `linear-gradient(180deg, ${C.crimsonDark} 0%, ${C.charcoal} 100%)`,
-        color: C.mutedLight, display: "flex", flexDirection: "column",
-        padding: 20, borderRight: `1px solid ${C.crimsonDark}`,
-      }}>
-        <div>
-          {/* Logo & role */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12,
-            marginBottom: 28, paddingBottom: 18,
-            borderBottom: `1px solid rgba(201,169,110,0.2)`,
-          }}>
-            <div style={{ width: 44, height: 44, borderRadius: "50%", border: `2px solid ${C.gold}`, padding: 2, flexShrink: 0 }}>
-              <img src={logo} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-            </div>
-            <div>
-              <h4 style={{ color: C.goldLight, margin: 0, fontSize: 15, letterSpacing: 1 }}>Sejuta Tawa</h4>
-              <small style={{ color: C.mutedLight, fontSize: 11 }}>{userRole}</small>
-            </div>
-          </div>
-
-          {/* Music toggle */}
-          <button
-            onClick={toggleMusic}
-            style={{
-              width: "100%", padding: "9px 12px", marginBottom: 16,
-              background: isMusicPlaying ? `rgba(201,169,110,0.15)` : `rgba(255,255,255,0.05)`,
-              border: `1px solid ${isMusicPlaying ? C.gold : "rgba(255,255,255,0.1)"}`,
-              borderRadius: 10, color: isMusicPlaying ? C.gold : C.mutedLight,
-              cursor: "pointer", fontSize: 12, fontWeight: 600,
-              display: "flex", alignItems: "center", gap: 8, letterSpacing: 0.5,
-              transition: "all 0.2s ease", fontFamily: "inherit",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(201,169,110,0.2)"}
-            onMouseLeave={e => e.currentTarget.style.background = isMusicPlaying ? "rgba(201,169,110,0.15)" : "rgba(255,255,255,0.05)"}
-          >
-            <span style={{ fontSize: 16 }}>{isMusicPlaying ? "🎵" : "🔇"}</span>
-            {isMusicPlaying ? "Musik: Aktif" : "Musik: Mati"}
-          </button>
-
-          {/* Navigation */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {[
-              { icon: "🛒", label: "Kasir Utama",  action: () => { setAdminMode(false); setUserMenuSelection("Kasir Utama"); }, active: !adminMode && userMenuSelection === "Kasir Utama" },
-              { icon: "🪑", label: "Daftar Meja",  action: () => { setAdminMode(false); setUserMenuSelection("Pilih Meja"); },  active: !adminMode && userMenuSelection === "Pilih Meja"  },
-              { icon: "📊", label: "Panel Admin",  action: () => { setAdminMode(true); setAdminTab("Ringkasan"); },             active: adminMode },
-            ].map(nav => (
-              <button key={nav.label} onClick={nav.action} style={{
-                width: "100%", padding: "11px 14px", textAlign: "left",
-                background: nav.active
-                  ? `linear-gradient(135deg, rgba(123,28,28,0.6) 0%, rgba(201,169,110,0.15) 100%)`
-                  : "transparent",
-                color: nav.active ? C.goldLight : C.mutedLight,
-                border: nav.active ? `1px solid rgba(201,169,110,0.3)` : "1px solid transparent",
-                borderRadius: 10, cursor: "pointer", fontWeight: nav.active ? "700" : "500",
-                fontSize: 13, letterSpacing: 0.4, fontFamily: "inherit", transition: "all 0.2s ease",
-                display: "flex", alignItems: "center", gap: 10,
-              }}
-                onMouseEnter={e => { if (!nav.active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                onMouseLeave={e => { if (!nav.active) e.currentTarget.style.background = "transparent"; }}
-              >
-                <span>{nav.icon}</span>{nav.label}
+      {item.hasSizes && (
+        <div className="modifier-group">
+          <label className="modifier-label">Ukuran</label>
+          <div className="chip-row">
+            {item.sizes.map(sz => (
+              <button key={sz.label}
+                className={`chip ${state.size?.label === sz.label ? "chip-active" : ""}`}
+                onClick={() => setState(p => ({...p, size:sz}))}>
+                {sz.label} <span>Rp {currency(sz.price)}</span>
               </button>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Logout */}
-        <button
-          onClick={() => { setLoggedIn(false); setUserRole(""); }}
-          style={{ ...btn.danger, padding: "11px 0", fontSize: 13, marginTop: "auto", letterSpacing: 0.5, fontFamily: "inherit" }}
-          onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-          onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-        >✕ Keluar Sistem</button>
+      {item.category === "Drinks" && (
+        <div className="modifier-group">
+          <label className="modifier-label">Suhu</label>
+          <div className="chip-row">
+            {temperatureOptions.map(t => (
+              <button key={t}
+                className={`chip ${state.temp === t ? "chip-active" : ""}`}
+                onClick={() => setState(p => ({...p, temp:t}))}>
+                {t === "Panas" ? "🔥" : "🧊"} {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="modifier-group">
+        <label className="modifier-label">Tambahan</label>
+        <div className="chip-row">
+          {(item.category === "Drinks" ? drinkAddOns : foodAddOns).map(o => (
+            <button key={o}
+              className={`chip ${state.addOns.includes(o) ? "chip-active" : ""}`}
+              onClick={() => toggleAddOn(o)}>
+              {o}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
-      <div style={{ flex: 1, padding: 24, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+      <textarea
+        className="mod-notes"
+        placeholder="Catatan khusus (opsional)..."
+        value={state.notes}
+        onChange={e => setState(p => ({...p, notes:e.target.value}))}
+      />
 
-        {adminMode ? (
-          /* ── ADMIN PANEL ── */
-          <div style={{ width: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <div>
-                <h2 style={{ margin: 0, color: C.crimsonDark, fontSize: 20, letterSpacing: 0.5 }}>Dashboard Admin</h2>
-                <small style={{ color: C.muted }}>{adminTab}</small>
+      <div className="modal-footer">
+        <span className="mod-price">Rp {currency(price)}</span>
+        <div className="modal-footer-btns">
+          <button className="btn-ghost" onClick={onClose}>Batal</button>
+          <button className="btn-primary" onClick={() => onAdd(item, state)}>+ Tambah</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ─── CART PANEL (shared desktop sidebar + mobile drawer) ────────── */
+function CartPanel({ cart, setCart, customerName, setCustomerName, customerTable, setCustomerTable,
+  orderType, setOrderType, paymentMethod, setPaymentMethod, promoCode, setPromoCode,
+  promoDiscount, applyPromoCode, subtotal, taxRate, serviceRate, onCheckout, onClose }) {
+
+  const tax     = Math.round(subtotal * taxRate);
+  const service = orderType === "Dine-In" ? Math.round(subtotal * serviceRate) : 0;
+  const total   = Math.max(0, subtotal + tax + service - promoDiscount);
+
+  const removeItem = (idx) => setCart(prev => prev.filter((_,i) => i !== idx));
+  const changeQty  = (idx, delta) => setCart(prev => prev.map((item, i) =>
+    i === idx ? {...item, qty: Math.max(1, item.qty + delta)} : item
+  ));
+
+  return (
+    <div className="cart-panel">
+      <div className="cart-header">
+        <h3>Pesanan Aktif</h3>
+        {onClose && <button className="btn-icon" onClick={onClose}>✕</button>}
+        {customerTable
+          ? <span className="badge badge-green">🪑 {customerTable}</span>
+          : <span className="badge badge-red">⚠ Belum pilih meja</span>}
+      </div>
+
+      {/* Form */}
+      <div className="cart-form">
+        <div className="form-row">
+          <input className="form-input" placeholder="Nama Pelanggan" value={customerName} onChange={e=>setCustomerName(e.target.value)} />
+          <input className="form-input small" placeholder="No Meja" value={customerTable} onChange={e=>setCustomerTable(e.target.value)} />
+        </div>
+        <div className="form-row">
+          <select className="form-input" value={orderType} onChange={e=>setOrderType(e.target.value)}>
+            <option>Dine-In</option><option>Takeaway</option>
+          </select>
+          <select className="form-input" value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
+            <option>Tunai</option><option>QRIS</option><option>Dompet Digital</option>
+          </select>
+        </div>
+        <div className="form-row">
+          <input className="form-input" placeholder="Kode Promo (KAFE10)" value={promoCode} onChange={e=>setPromoCode(e.target.value)} />
+          <button className="btn-primary compact" onClick={applyPromoCode}>Klaim</button>
+        </div>
+      </div>
+
+      {/* Items */}
+      <div className="cart-items">
+        {cart.length === 0
+          ? <div className="cart-empty">🛒<p>Keranjang kosong</p></div>
+          : cart.map((item, idx) => (
+            <div key={idx} className="cart-item">
+              <div className="cart-item-info">
+                <span className="cart-item-name">{item.name}{item.size ? ` (${item.size})` : ""}</span>
+                {item.modifiers?.addOns?.length > 0 && (
+                  <small className="cart-item-mod">+{item.modifiers.addOns.join(", ")}</small>
+                )}
               </div>
-              <div style={{ display: "flex", gap: 6, background: C.creamDark, padding: 5, borderRadius: 12, border: `1px solid ${C.goldLight}` }}>
-                {["Ringkasan", "Kelola Menu", "Kelola Meja", "Stok", "Transaksi"].map(t => (
-                  <button key={t} onClick={() => setAdminTab(t)} style={{
-                    padding: "7px 14px", border: "none", borderRadius: 8, cursor: "pointer",
-                    fontWeight: "700", fontSize: 12, letterSpacing: 0.3, fontFamily: "inherit",
-                    background: adminTab === t
-                      ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonDark})`
-                      : "transparent",
-                    color: adminTab === t ? C.white : C.muted,
-                    boxShadow: adminTab === t ? `0 3px 10px rgba(123,28,28,0.3)` : "none",
-                    transition: "all 0.2s ease",
-                  }}>{t}</button>
+              <div className="cart-item-controls">
+                <button className="qty-btn" onClick={() => changeQty(idx,-1)}>−</button>
+                <span>{item.qty}</span>
+                <button className="qty-btn" onClick={() => changeQty(idx,+1)}>+</button>
+                <span className="cart-item-price">Rp {currency(item.price*item.qty)}</span>
+                <button className="btn-icon danger" onClick={()=>removeItem(idx)}>🗑</button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      {/* Summary */}
+      <div className="cart-summary">
+        <div className="summary-row"><span>Subtotal</span><span>Rp {currency(subtotal)}</span></div>
+        <div className="summary-row"><span>Pajak 11%</span><span>Rp {currency(tax)}</span></div>
+        <div className="summary-row"><span>Service {orderType==="Dine-In"?"5%":"0%"}</span><span>Rp {currency(service)}</span></div>
+        {promoDiscount > 0 && <div className="summary-row discount"><span>Diskon</span><span>−Rp {currency(promoDiscount)}</span></div>}
+        <div className="summary-total"><span>Total Akhir</span><span>Rp {currency(total)}</span></div>
+        <button className="btn-checkout" onClick={onCheckout}>🚀 Bayar Sekarang</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── TOP SELLING CHART ──────────────────────────────────────────── */
+function TopChart({ menuItems, history }) {
+  const salesMap = {};
+  menuItems.forEach(m => { salesMap[m.name] = m.sold || 0; });
+  history.filter(o=>o.status!=="Dibatalkan").forEach(order =>
+    (order.orders||[]).forEach(item => {
+      salesMap[item.name] = (salesMap[item.name]||0) + (item.qty||1);
+    })
+  );
+  const sorted = Object.entries(salesMap)
+    .map(([name,count]) => ({name,count}))
+    .sort((a,b) => b.count-a.count).slice(0,6);
+  const max = sorted[0]?.count || 1;
+
+  return (
+    <div className="chart-wrap">
+      <h4>🏆 Menu Terlaris</h4>
+      <div className="bar-chart">
+        {sorted.map((item,i) => (
+          <div key={item.name} className="bar-col">
+            <span className="bar-count">{item.count}</span>
+            <div className="bar" style={{height:`${Math.max(8,(item.count/max)*160)}px`, opacity: 1-(i*0.1)}} />
+            <span className="bar-name">{item.name.split(" ")[0]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── MAIN APP ───────────────────────────────────────────────────── */
+export default function App() {
+  const [loading,        setLoading]        = useState(true);
+  const [loggedIn,       setLoggedIn]       = useState(false);
+  const [registerMode,   setRegisterMode]   = useState(false);
+  const [loginUser,      setLoginUser]      = useState("");
+  const [loginPass,      setLoginPass]      = useState("");
+  const [userRole,       setUserRole]       = useState("");
+  const [toast,          setToast]          = useState(null);
+  const [menuItems,      setMenuItems]      = useState([]);
+  const [stockItems,     setStockItems]     = useState(initialStock);
+  const [tables,         setTables]         = useState(initialTables);
+  const [promoCodes]                        = useState(initialPromoCodes);
+  const [history,        setHistory]        = useState([]);
+
+  // UI state
+  const [activeNav,      setActiveNav]      = useState("kasir"); // kasir | meja | admin
+  const [adminTab,       setAdminTab]       = useState("ringkasan");
+  const [search,         setSearch]         = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showReceipt,    setShowReceipt]    = useState(false);
+  const [showModifier,   setShowModifier]   = useState(false);
+  const [modifierItem,   setModifierItem]   = useState(null);
+  const [editingMenu,    setEditingMenu]    = useState(null);
+  const [menuForm,       setMenuForm]       = useState({name:"",price:"",category:"Food",image:""});
+  const [isMusicOn,      setIsMusicOn]      = useState(true);
+  const [showSidebar,    setShowSidebar]    = useState(false);
+
+  // Order state
+  const [cart,           setCart]           = useState([]);
+  const [customerName,   setCustomerName]   = useState("");
+  const [customerTable,  setCustomerTable]  = useState("");
+  const [orderType,      setOrderType]      = useState("Dine-In");
+  const [paymentMethod,  setPaymentMethod]  = useState("Tunai");
+  const [promoCode,      setPromoCode]      = useState("");
+  const [promoDiscount,  setPromoDiscount]  = useState(0);
+  const [selectedSizes,  setSelectedSizes]  = useState({});
+
+  const audioRef = useRef(null);
+  const taxRate  = 0.11;
+  const serviceRate = 0.05;
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/menu")
+      .then(r => r.json())
+      .then(data => {
+        const merged = initialMenuItems.map(local => {
+          const remote = data.find(b => b.id === local.id);
+          return remote ? {...local, price:remote.price, name:remote.name, image:imageMap[local.id]||local.image} : local;
+        });
+        setMenuItems(merged);
+      })
+      .catch(() => setMenuItems(initialMenuItems));
+  }, []);
+
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 1400); return () => clearTimeout(t); }, []);
+
+  const sendToast = useCallback((message, type="success") => {
+    setToast({message,type});
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const isGmail = v => /^[^\s@]+@gmail\.com$/i.test(v||"");
+
+  const handleLogin = () => {
+    if (!isGmail(loginUser)) { sendToast("Masukkan Gmail yang valid","warning"); return; }
+    if (!loginPass)           { sendToast("Masukkan password","warning"); return; }
+    setLoggedIn(true);
+    setUserRole(loginUser.toLowerCase()==="admin@gmail.com" ? "Admin" : "Kasir");
+    sendToast("Login berhasil!");
+  };
+
+  const handleRegister = () => {
+    if (!isGmail(loginUser)) { sendToast("Masukkan Gmail yang valid","warning"); return; }
+    if (!loginPass)           { sendToast("Masukkan password","warning"); return; }
+    sendToast("Registrasi berhasil (Simulasi)");
+    setRegisterMode(false); setLoginPass("");
+  };
+
+  const subtotal = cart.reduce((acc,item) => acc + item.price*item.qty, 0);
+
+  const getPromo = code => promoCodes.find(p => p.code.toUpperCase()===code.trim().toUpperCase());
+  const calcDiscount = (total, code) => {
+    const p = getPromo(code);
+    if (!p||!p.active) return 0;
+    return p.type==="percent" ? Math.round(total*p.amount/100) : p.amount;
+  };
+
+  const applyPromoCode = () => {
+    if (!promoCode) { sendToast("Masukkan kode promo","warning"); return; }
+    const p = getPromo(promoCode);
+    if (!p) { sendToast("Kode promo tidak valid","warning"); setPromoDiscount(0); return; }
+    const d = calcDiscount(subtotal, promoCode);
+    setPromoDiscount(d);
+    sendToast(`Promo ${p.code} aktif! Hemat Rp ${currency(d)}`);
+  };
+
+  const updateStock = (cartItems) => {
+    setStockItems(prev => prev.map(stock => {
+      const used = cartItems.reduce((sum,ci) => {
+        const recipe = recipeMap[ci.name]||[];
+        const ing = recipe.find(r=>r.id===stock.id);
+        return ing ? sum + ing.qty*ci.qty : sum;
+      }, 0);
+      return {...stock, qty:Math.max(0,stock.qty-used)};
+    }));
+  };
+
+  const addToCart = (item, modState=null) => {
+    if (item.status==="Habis") { sendToast("Menu ini sedang habis","warning"); return; }
+    const chosenSize = modState?.size || selectedSizes[item.name] || item.sizes?.[0];
+    const newItem = {
+      id:item.id, name:item.name, size:chosenSize?.label||"",
+      price:chosenSize?.price||item.price, qty:1,
+      modifiers: modState ? {addOns:modState.addOns, temp:modState.temp, sweetness:modState.sweetness} : null,
+    };
+    setCart(prev => [...prev, newItem]);
+    sendToast(`${item.name} ditambahkan`);
+  };
+
+  const handleCheckout = () => {
+    if (cart.length===0)                          { sendToast("Keranjang masih kosong","warning"); return; }
+    if (orderType==="Dine-In" && !customerTable)  { sendToast("Pilih nomor meja dulu","warning"); return; }
+    const discount = calcDiscount(subtotal, promoCode);
+    const tax      = Math.round(subtotal * taxRate);
+    const service  = orderType==="Dine-In" ? Math.round(subtotal * serviceRate) : 0;
+    const total    = Math.max(0, subtotal + tax + service - discount);
+    const ts = Date.now();
+    const order = {
+      customerName, customerTable, paymentMethod, orderType,
+      subtotal, total, tax, service, discount,
+      promoCode: promoCode||"",
+      orders: cart,
+      timestamp: ts,
+      date: new Date(ts).toLocaleString("id-ID"),
+      status: "Selesai",
+    };
+    setHistory(prev => [order,...prev]);
+    updateStock(cart);
+    setCart([]);
+    setPromoCode("");
+    setPromoDiscount(0);
+    setShowMobileCart(false);
+    setShowReceipt(true);
+    if (customerTable) {
+      setTables(prev => prev.map(t => t.name===customerTable ? {...t,status:"Terisi"} : t));
+    }
+    sendToast("Pembayaran berhasil!");
+  };
+
+  const printReceipt = (order) => {
+    const popup = window.open("","_blank","width=420,height=700");
+    const items = (order.orders||[]).map(it =>
+      `<tr><td>${it.name}${it.size?` (${it.size})`:""} x${it.qty}</td><td>Rp ${currency(it.price*it.qty)}</td></tr>`
+    ).join("");
+    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Struk</title>
+      <style>body{font-family:monospace;padding:16px}table{width:100%}th,td{text-align:left;padding:4px}
+      .total{font-size:18px;font-weight:bold;margin-top:12px}</style></head><body>
+      <h3 style="text-align:center">SEJUTA TAWA</h3>
+      <p>Pelanggan: ${order.customerName||"-"}</p>
+      <p>Meja: ${order.customerTable||"-"}</p>
+      <p>Tanggal: ${order.date}</p>
+      <hr><table>${items}</table><hr>
+      <p>Pajak: Rp ${currency(order.tax)}</p>
+      <p>Service: Rp ${currency(order.service)}</p>
+      ${order.discount>0?`<p>Diskon: -Rp ${currency(order.discount)}</p>`:""}
+      <p class="total">TOTAL: Rp ${currency(order.total)}</p>
+      <hr><p style="text-align:center">Terima kasih!</p>
+      <script>window.print();setTimeout(()=>window.close(),500);</script></body></html>`);
+    popup.document.close();
+  };
+
+  const toggleMusic = () => {
+    if (!audioRef.current) return;
+    isMusicOn ? audioRef.current.pause() : audioRef.current.play();
+    setIsMusicOn(p => !p);
+  };
+
+  const filteredMenu = menuItems.filter(item =>
+    (activeCategory==="All" || item.category===activeCategory) &&
+    item.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalRevenue = history.filter(o=>o.status!=="Dibatalkan").reduce((s,o)=>s+o.total,0);
+  const orderCount   = history.filter(o=>o.status!=="Dibatalkan").length;
+
+  // ── LOADING ──────────────────────────────────────────────────────
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="loading-logo-ring">
+        <img src={logo} alt="logo" className="loading-logo" />
+      </div>
+      <h1>SEJUTA TAWA</h1>
+      <p>Memuat sistem kasir...</p>
+    </div>
+  );
+
+  // ── LOGIN ────────────────────────────────────────────────────────
+  if (!loggedIn) return (
+    <div className="login-page">
+      <div className="login-card">
+        <img src={logo} alt="logo" className="login-avatar" />
+        <h2>{registerMode ? "Daftar Akun" : "Masuk Kasir"}</h2>
+        <p>{registerMode ? "Buat akun kasir baru" : "Login untuk mengakses sistem"}</p>
+        <input className="login-input" type="email" placeholder="Email Gmail"
+          value={loginUser} onChange={e=>setLoginUser(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&(registerMode?handleRegister():handleLogin())} />
+        <input className="login-input" type="password" placeholder="Password"
+          value={loginPass} onChange={e=>setLoginPass(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&(registerMode?handleRegister():handleLogin())} />
+        <button className="btn-checkout" onClick={registerMode?handleRegister:handleLogin}>
+          {registerMode ? "Daftar Sekarang" : "Masuk →"}
+        </button>
+        <span className="login-switch" onClick={()=>{setRegisterMode(p=>!p);setLoginPass("");}}>
+          {registerMode ? "Sudah punya akun? Login" : "Belum punya akun? Daftar"}
+        </span>
+      </div>
+      <Toast toast={toast} />
+    </div>
+  );
+
+  // ── MAIN ─────────────────────────────────────────────────────────
+  const navItems = [
+    {id:"kasir", icon:"🛒", label:"Kasir"},
+    {id:"meja",  icon:"🪑", label:"Meja"},
+    {id:"admin", icon:"📊", label:"Admin"},
+  ];
+
+  return (
+    <div className="app-shell">
+      <audio ref={audioRef} src={music} autoPlay loop />
+
+      {/* ─ SIDEBAR (desktop) ─ */}
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <img src={logo} alt="logo" className="sidebar-logo" />
+          <div>
+            <strong>Sejuta Tawa</strong>
+            <small>{userRole}</small>
+          </div>
+        </div>
+
+        <button className="music-toggle" onClick={toggleMusic}>
+          {isMusicOn ? "🎵 Musik Aktif" : "🔇 Musik Mati"}
+        </button>
+
+        <nav className="sidebar-nav">
+          {navItems.map(n => (
+            <button key={n.id}
+              className={`nav-btn ${activeNav===n.id?"nav-active":""}`}
+              onClick={() => { setActiveNav(n.id); setShowSidebar(false); }}>
+              <span>{n.icon}</span>{n.label}
+            </button>
+          ))}
+        </nav>
+
+        <button className="btn-logout" onClick={()=>{setLoggedIn(false);setUserRole("");}}>
+          ← Keluar
+        </button>
+      </aside>
+
+      {/* ─ MOBILE HEADER ─ */}
+      <header className="mobile-header">
+        <button className="hamburger" onClick={()=>setShowSidebar(true)}>☰</button>
+        <div className="mobile-brand">
+          <img src={logo} alt="logo" className="mobile-logo" />
+          <span>Sejuta Tawa</span>
+        </div>
+        {activeNav==="kasir" && (
+          <button className="cart-fab-mini" onClick={()=>setShowMobileCart(true)}>
+            🛒
+            {cart.length>0 && <span className="cart-badge">{cart.length}</span>}
+          </button>
+        )}
+      </header>
+
+      {/* ─ MOBILE SIDEBAR DRAWER ─ */}
+      {showSidebar && (
+        <div className="sidebar-overlay" onClick={()=>setShowSidebar(false)}>
+          <aside className="sidebar-drawer" onClick={e=>e.stopPropagation()}>
+            <div className="sidebar-brand">
+              <img src={logo} alt="logo" className="sidebar-logo" />
+              <div><strong>Sejuta Tawa</strong><small>{userRole}</small></div>
+              <button className="btn-icon" onClick={()=>setShowSidebar(false)} style={{marginLeft:"auto"}}>✕</button>
+            </div>
+            <button className="music-toggle" onClick={toggleMusic}>
+              {isMusicOn ? "🎵 Musik Aktif" : "🔇 Musik Mati"}
+            </button>
+            <nav className="sidebar-nav">
+              {navItems.map(n => (
+                <button key={n.id}
+                  className={`nav-btn ${activeNav===n.id?"nav-active":""}`}
+                  onClick={() => { setActiveNav(n.id); setShowSidebar(false); }}>
+                  <span>{n.icon}</span>{n.label}
+                </button>
+              ))}
+            </nav>
+            <button className="btn-logout" onClick={()=>{setLoggedIn(false);setUserRole("");setShowSidebar(false);}}>
+              ← Keluar
+            </button>
+          </aside>
+        </div>
+      )}
+
+      {/* ─ MAIN CONTENT ─ */}
+      <main className="main-content">
+
+        {/* ── KASIR ── */}
+        {activeNav==="kasir" && (
+          <div className="kasir-layout">
+            <div className="kasir-menu">
+              {/* Search + Filter */}
+              <div className="menu-controls">
+                <input className="search-input" type="text" placeholder="🔍 Cari menu..."
+                  value={search} onChange={e=>setSearch(e.target.value)} />
+                <div className="category-pills">
+                  {["All","Food","Drinks","Snack","Dessert"].map(cat => (
+                    <button key={cat}
+                      className={`pill ${activeCategory===cat?"pill-active":""}`}
+                      onClick={() => setActiveCategory(cat)}>{cat}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grid */}
+              <div className="menu-grid">
+                {filteredMenu.map(item => (
+                  <div key={item.id} className="menu-card">
+                    <div className="menu-card-img-wrap">
+                      <img src={imageMap[item.id]||item.image} alt={item.name}
+                        className="menu-card-img"
+                        onError={e=>{ e.target.style.display="none"; }} />
+                      <span className="menu-cat-badge">{item.category}</span>
+                      {item.status==="Habis" && <div className="menu-sold-out">Habis</div>}
+                    </div>
+                    <div className="menu-card-body">
+                      <h5 className="menu-card-name">{item.name}</h5>
+                      <p className="menu-card-price">Rp {currency(item.price)}</p>
+                      {item.hasSizes && (
+                        <div className="size-row">
+                          {item.sizes.map(sz => (
+                            <button key={sz.label}
+                              className={`size-chip ${selectedSizes[item.name]?.label===sz.label?"size-active":""}`}
+                              onClick={() => setSelectedSizes(p=>({...p,[item.name]:sz}))}>
+                              {sz.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="menu-card-actions">
+                        <button className="btn-add" onClick={()=>addToCart(item)}>+ Tambah</button>
+                        <button className="btn-custom" onClick={()=>{setModifierItem(item);setShowModifier(true);}}>⚙</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Cart */}
+            <div className="desktop-cart">
+              <CartPanel
+                cart={cart} setCart={setCart}
+                customerName={customerName} setCustomerName={setCustomerName}
+                customerTable={customerTable} setCustomerTable={setCustomerTable}
+                orderType={orderType} setOrderType={setOrderType}
+                paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+                promoCode={promoCode} setPromoCode={setPromoCode}
+                promoDiscount={promoDiscount} applyPromoCode={applyPromoCode}
+                subtotal={subtotal} taxRate={taxRate} serviceRate={serviceRate}
+                onCheckout={handleCheckout}
+              />
+            </div>
+
+            {/* Mobile Cart FAB */}
+            {cart.length>0 && (
+              <div className="mobile-cart-fab-bar">
+                <button className="btn-checkout" onClick={()=>setShowMobileCart(true)}>
+                  🛒 {cart.length} item · Rp {currency(subtotal)}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── MEJA ── */}
+        {activeNav==="meja" && (
+          <div className="page-section">
+            <div className="page-header">
+              <h2>Manajemen Meja</h2>
+              <p>Pilih meja aktif untuk pesanan Dine-In</p>
+            </div>
+            <div className="table-grid">
+              {tables.map(t => (
+                <button key={t.name}
+                  className={`table-card ${t.status==="Terisi"?"table-occupied":""} ${customerTable===t.name?"table-selected":""}`}
+                  onClick={() => {
+                    if (t.status==="Kosong") {
+                      setCustomerTable(t.name);
+                      setActiveNav("kasir");
+                      sendToast(`Meja ${t.name} dipilih`);
+                    } else sendToast("Meja sedang terisi","warning");
+                  }}>
+                  <span className="table-icon">🪑</span>
+                  <strong>{t.name}</strong>
+                  <small>{t.status}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── ADMIN ── */}
+        {activeNav==="admin" && (
+          <div className="page-section">
+            <div className="page-header">
+              <h2>Dashboard Admin</h2>
+              <div className="admin-tabs">
+                {[
+                  {id:"ringkasan",  label:"Ringkasan"},
+                  {id:"menu",       label:"Kelola Menu"},
+                  {id:"stok",       label:"Stok"},
+                  {id:"transaksi",  label:"Transaksi"},
+                ].map(t => (
+                  <button key={t.id}
+                    className={`tab-btn ${adminTab===t.id?"tab-active":""}`}
+                    onClick={()=>setAdminTab(t.id)}>{t.label}</button>
                 ))}
               </div>
             </div>
 
             {/* Ringkasan */}
-            {adminTab === "Ringkasan" && (
-              <div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 4 }}>
+            {adminTab==="ringkasan" && (
+              <>
+                <div className="stat-grid">
                   {[
-                    { label: "Total Penjualan",     value: `Rp ${totalRevenue.toLocaleString()}`, icon: "💰" },
-                    { label: "Total Transaksi",      value: orderCount, icon: "🧾" },
-                    { label: "Meja Terisi",          value: `${tables.filter(t => t.status === "Terisi").length} / ${tables.length}`, icon: "🪑" },
-                    { label: "Loyalty Point Kasir",  value: `${history.reduce((acc, o) => acc + Math.floor(o.total / 10000), 0)} Pts`, icon: "⭐" },
-                  ].map(card => (
-                    <div key={card.label} style={{
-                      background: C.white, padding: 22, borderRadius: 14,
-                      border: `1px solid ${C.goldLight}`,
-                      boxShadow: `0 3px 12px rgba(123,28,28,0.06)`,
-                      borderLeft: `4px solid ${C.crimson}`,
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <small style={{ color: C.muted, fontSize: 11, letterSpacing: 0.5 }}>{card.label}</small>
-                        <span style={{ fontSize: 20 }}>{card.icon}</span>
+                    {label:"Total Penjualan",  value:`Rp ${currency(totalRevenue)}`, icon:"💰"},
+                    {label:"Total Transaksi",   value:orderCount,                      icon:"🧾"},
+                    {label:"Meja Terisi",       value:`${tables.filter(t=>t.status==="Terisi").length}/${tables.length}`, icon:"🪑"},
+                    {label:"Poin Kasir",        value:`${history.reduce((a,o)=>a+Math.floor(o.total/10000),0)} Pts`,      icon:"⭐"},
+                  ].map(c => (
+                    <div key={c.label} className="stat-card">
+                      <div className="stat-icon">{c.icon}</div>
+                      <div>
+                        <small>{c.label}</small>
+                        <h3>{c.value}</h3>
                       </div>
-                      <h2 style={{ margin: "8px 0 0 0", color: C.crimsonDark, fontSize: 20 }}>{card.value}</h2>
                     </div>
                   ))}
                 </div>
-                <TopSellingChart menuItems={menuItems} history={history} />
-              </div>
+                <TopChart menuItems={menuItems} history={history} />
+              </>
             )}
 
-            {/* Kelola Menu */}
-            {adminTab === "Kelola Menu" && (
-              <div>
-                <div style={{ background: C.white, borderRadius: 14, padding: 20, border: `1px solid ${C.goldLight}`, marginBottom: 20 }}>
+            {/* Menu */}
+            {adminTab==="menu" && (
+              <div className="admin-section">
+                <div className="admin-menu-list">
                   {menuItems.map(item => (
-                    <div key={item.id} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "12px 0", borderBottom: `1px solid ${C.creamDark}`,
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <img src={item.image} alt="" style={{ width: 46, height: 46, borderRadius: 8, objectFit: "cover", border: `1px solid ${C.goldLight}` }} />
-                        <strong style={{ color: C.charcoal, fontSize: 14 }}>{item.name}</strong>
+                    <div key={item.id} className="admin-menu-row">
+                      <img src={imageMap[item.id]||item.image} alt={item.name} className="admin-menu-thumb" />
+                      <div className="admin-menu-info">
+                        <strong>{item.name}</strong>
+                        <small>{item.category} · Rp {currency(item.price)}</small>
                       </div>
-                      <div style={{ color: C.muted, fontSize: 13 }}>Rp {item.price.toLocaleString()}</div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={() => startEditMenu(item)} style={{ ...btn.secondary, padding: "6px 14px", fontSize: 12, fontFamily: "inherit" }}>✏️ Edit</button>
-                        <button onClick={() => deleteMenuItem(item.id)} style={{ ...btn.danger,    padding: "6px 14px", fontSize: 12, fontFamily: "inherit" }}>🗑 Hapus</button>
+                      <div className="admin-menu-actions">
+                        <button className="btn-sm" onClick={()=>{setEditingMenu(item);setMenuForm({name:item.name,price:String(item.price),category:item.category,image:""});}}>✏ Edit</button>
+                        <button className="btn-sm danger" onClick={()=>{setMenuItems(p=>p.filter(m=>m.id!==item.id));sendToast("Menu dihapus");}}>🗑</button>
                       </div>
                     </div>
                   ))}
-                  {editingMenuId && (
-                    <div style={{ marginTop: 20, padding: 16, background: C.cream, borderRadius: 10, border: `1px solid ${C.goldLight}` }}>
-                      <h4 style={{ color: C.crimsonDark, marginTop: 0 }}>Edit Harga Menu</h4>
-                      <input
-                        type="number" value={menuForm.price}
-                        onChange={e => setMenuForm({ ...menuForm, price: e.target.value })}
-                        style={{ ...inputStyle, marginRight: 8 }}
-                      />
-                      <button onClick={saveMenuUpdate} style={{ ...btn.success, padding: "9px 18px", fontSize: 13, fontFamily: "inherit" }}>✓ Simpan</button>
-                    </div>
-                  )}
                 </div>
 
-                {/* Tambah menu baru */}
-                <div style={{
-                  background: C.white, borderRadius: 14, padding: 22,
-                  border: `2px dashed ${C.crimson}`,
-                  boxShadow: `0 4px 16px rgba(123,28,28,0.06)`,
-                }}>
-                  <h4 style={{ marginTop: 0, color: C.crimson, letterSpacing: 0.5 }}>➕ Tambah Menu Baru</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-                    <input type="text"   placeholder="Nama Menu"              value={menuForm.name}     onChange={e => setMenuForm({ ...menuForm, name: e.target.value })}     style={inputStyle} />
-                    <input type="number" placeholder="Harga (contoh: 25000)"  value={menuForm.price}    onChange={e => setMenuForm({ ...menuForm, price: e.target.value })}    style={inputStyle} />
-                    <select value={menuForm.category} onChange={e => setMenuForm({ ...menuForm, category: e.target.value })} style={{ ...inputStyle, background: C.cream }}>
+                {/* Add new */}
+                <div className="admin-form-card">
+                  <h4>➕ Tambah Menu Baru</h4>
+                  <div className="admin-form-grid">
+                    <input className="form-input" placeholder="Nama Menu" value={menuForm.name} onChange={e=>setMenuForm(p=>({...p,name:e.target.value}))} />
+                    <input className="form-input" type="number" placeholder="Harga" value={menuForm.price} onChange={e=>setMenuForm(p=>({...p,price:e.target.value}))} />
+                    <select className="form-input" value={menuForm.category} onChange={e=>setMenuForm(p=>({...p,category:e.target.value}))}>
                       <option>Food</option><option>Drinks</option><option>Snack</option><option>Dessert</option>
                     </select>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <input
-                        type="file" accept="image/*"
-                        onChange={e => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = ev => setMenuForm({ ...menuForm, image: ev.target.result });
-                          reader.readAsDataURL(file);
-                        }}
-                        style={{ ...inputStyle, cursor: "pointer", fontSize: 12 }}
-                      />
-                      {menuForm.image && (
-                        <img src={menuForm.image} alt="preview" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.goldLight}` }} />
-                      )}
-                    </div>
+                    <input className="form-input" type="file" accept="image/*"
+                      onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setMenuForm(p=>({...p,image:ev.target.result}));r.readAsDataURL(f);}} />
                   </div>
-                  <button
-                    onClick={handleTambahMenu}
-                    style={{ ...btn.primary, padding: "10px 26px", fontSize: 13, letterSpacing: 0.5, fontFamily: "inherit" }}
-                    onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-                    onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-                  >✅ Simpan Menu Baru</button>
+                  <button className="btn-primary" onClick={()=>{
+                    if(!menuForm.name||!menuForm.price){sendToast("Nama & harga wajib diisi","warning");return;}
+                    setMenuItems(p=>[...p,{id:Date.now(),name:menuForm.name,category:menuForm.category,image:menuForm.image||"",price:Number(menuForm.price),sold:0,status:"Tersedia",hasSizes:false}]);
+                    setMenuForm({name:"",price:"",category:"Food",image:""});
+                    sendToast("Menu baru ditambahkan!");
+                  }}>Simpan Menu</button>
                 </div>
-              </div>
-            )}
-
-            {/* Kelola Meja */}
-            {adminTab === "Kelola Meja" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
-                {tables.map(t => (
-                  <button key={t.name} onClick={() => toggleTableStatus(t.name)} style={{
-                    padding: 20, borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
-                    border:      `1.5px solid ${t.status === "Terisi" ? "#FCA5A5" : C.goldLight}`,
-                    background:  t.status === "Terisi" ? "linear-gradient(135deg, #FEE2E2, #FECACA)" : `linear-gradient(135deg, ${C.greenLight}, #A7F3D0)`,
-                    color:       t.status === "Terisi" ? C.red : C.green,
-                    fontWeight: "700", fontSize: 13,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)", transition: "all 0.2s ease",
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.transform = "scale(1.04)"}
-                    onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-                  >
-                    {t.name}<br /><small style={{ fontWeight: 400 }}>{t.status}</small>
-                  </button>
-                ))}
               </div>
             )}
 
             {/* Stok */}
-            {adminTab === "Stok" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+            {adminTab==="stok" && (
+              <div className="stock-grid">
                 {stockItems.map(s => (
-                  <div key={s.id} style={{
-                    background: C.white, padding: 18, borderRadius: 12,
-                    border:     `1px solid ${C.goldLight}`,
-                    borderLeft: `4px solid ${s.qty <= s.threshold ? C.red : C.crimson}`,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  }}>
-                    <h4 style={{ color: C.charcoal, margin: "0 0 10px 0" }}>{s.label}</h4>
-                    <input
-                      type="number" value={s.qty}
-                      onChange={e => updateStockQty(s.id, e.target.value)}
-                      style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
-                    />
-                    {s.qty <= s.threshold && (
-                      <small style={{ color: C.red, marginTop: 4, display: "block" }}>⚠ Stok hampir habis</small>
-                    )}
+                  <div key={s.id} className={`stock-card ${s.qty<=s.threshold?"stock-low":""}`}>
+                    <div className="stock-label">
+                      <strong>{s.label}</strong>
+                      {s.qty<=s.threshold && <span className="badge badge-red">Hampir Habis</span>}
+                    </div>
+                    <input className="form-input" type="number" value={s.qty}
+                      onChange={e=>setStockItems(p=>p.map(x=>x.id===s.id?{...x,qty:Math.max(0,Number(e.target.value))}:x))} />
+                    <div className="stock-bar-wrap">
+                      <div className="stock-bar" style={{width:`${Math.min(100,(s.qty/150)*100)}%`}} />
+                    </div>
+                    <small>{s.qty} unit tersisa</small>
                   </div>
                 ))}
               </div>
             )}
 
             {/* Transaksi */}
-            {adminTab === "Transaksi" && (
-              <div style={{ background: C.white, padding: 16, borderRadius: 14, border: `1px solid ${C.goldLight}` }}>
-                {history.length === 0 && (
-                  <p style={{ color: C.muted, textAlign: "center", padding: 20 }}>Belum ada transaksi</p>
-                )}
-                {history.map((h, i) => (
-                  <div key={i} style={{
-                    display: "flex", justifyContent: "space-between",
-                    padding: "13px 0", borderBottom: `1px solid ${C.creamDark}`,
-                  }}>
-                    <div>
-                      <strong style={{ color: C.charcoal }}>{h.customerName} (Meja {h.customerTable || "-"})</strong>
-                      <br /><small style={{ color: C.muted }}>{h.date} • {h.paymentMethod}</small>
+            {adminTab==="transaksi" && (
+              <div className="trans-list">
+                {history.length===0 && <p className="empty-state">Belum ada transaksi</p>}
+                {history.map((h,i) => (
+                  <div key={i} className={`trans-card ${h.status==="Dibatalkan"?"trans-void":""}`}>
+                    <div className="trans-info">
+                      <strong>{h.customerName||"Pelanggan"}</strong>
+                      <small>Meja {h.customerTable||"-"} · {h.date}</small>
+                      <small>{h.paymentMethod} · {h.orderType}</small>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <strong style={{ color: h.status === "Dibatalkan" ? C.red : C.crimsonDark }}>
-                        Rp {h.total.toLocaleString()}
-                      </strong>
-                      <br />
-                      <button
-                        onClick={() => voidOrder(i)}
-                        style={{ fontSize: 11, color: C.red, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}
-                      >Void</button>
+                    <div className="trans-right">
+                      <span className="trans-amount">Rp {currency(h.total)}</span>
+                      <span className={`badge ${h.status==="Dibatalkan"?"badge-red":"badge-green"}`}>
+                        {h.status||"Selesai"}
+                      </span>
+                      {h.status!=="Dibatalkan" && (
+                        <button className="btn-sm danger" onClick={()=>{
+                          setHistory(p=>p.map((x,j)=>j===i?{...x,status:"Dibatalkan"}:x));
+                          sendToast("Pesanan dibatalkan","warning");
+                        }}>Void</button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-        ) : userMenuSelection === "Pilih Meja" ? (
-          /* ── TABLE SELECTION ── */
-          <div>
-            <h2 style={{ marginBottom: 6, color: C.crimsonDark, letterSpacing: 0.5 }}>Manajemen Meja Kafe</h2>
-            <p style={{ color: C.muted, marginBottom: 22, fontSize: 13 }}>Pilih meja aktif pelanggan untuk pesanan Dine-In.</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-              {tables.map(table => (
-                <button key={table.name}
-                  onClick={() => {
-                    if (table.status === "Kosong") {
-                      setCustomerTable(table.name);
-                      setUserMenuSelection("Kasir Utama");
-                      sendToast(`Meja ${table.name} dipilih`);
-                    } else {
-                      sendToast("Meja ini sedang terisi", "warning");
-                    }
-                  }}
-                  style={{
-                    padding: 24, borderRadius: 14, cursor: "pointer", fontFamily: "inherit",
-                    border: customerTable === table.name
-                      ? `2px solid ${C.crimson}`
-                      : table.status === "Terisi"
-                        ? `1.5px solid #FCA5A5`
-                        : `1.5px solid ${C.goldLight}`,
-                    background: customerTable === table.name
-                      ? `linear-gradient(135deg, rgba(123,28,28,0.08), rgba(201,169,110,0.12))`
-                      : table.status === "Terisi" ? "#FEE2E2" : C.white,
-                    color: table.status === "Terisi" ? C.red : C.charcoal,
-                    fontWeight: "700", textAlign: "center",
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.06)", transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={e => { if (table.status !== "Terisi") e.currentTarget.style.transform = "translateY(-3px)"; }}
-                  onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-                >
-                  <span style={{ fontSize: 22 }}>🪑 {table.name}</span>
-                  <div style={{ marginTop: 8, fontSize: 12, color: table.status === "Terisi" ? C.red : C.green }}>
-                    {table.status === "Terisi" ? "Terisi Pelanggan" : "Kosong / Siap"}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-        ) : (
-          /* ── KASIR UTAMA ── */
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <div>
-                <h2 style={{ margin: 0, color: C.crimsonDark, fontSize: 20, letterSpacing: 0.5 }}>Daftar Menu Kasir</h2>
-                <small style={{ color: C.muted }}>Pilih produk untuk ditambahkan ke struk belanja</small>
-              </div>
-              <input
-                type="text" placeholder="🔍 Cari menu makanan/minuman..."
-                value={search} onChange={e => setSearch(e.target.value)}
-                style={{ ...inputStyle, width: 270 }}
-              />
-            </div>
-
-            {/* Category Filter */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: `2px solid ${C.goldLight}`, paddingBottom: 14 }}>
-              {["All", "Food", "Drinks", "Snack", "Dessert"].map(cat => (
-                <button key={cat} onClick={() => setActiveCategory(cat)} style={{
-                  padding: "8px 20px", border: "none", borderRadius: 20, cursor: "pointer",
-                  fontWeight: "700", fontSize: 12, letterSpacing: 0.5, fontFamily: "inherit",
-                  background: activeCategory === cat
-                    ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonDark})`
-                    : C.white,
-                  color: activeCategory === cat ? C.white : C.muted,
-                  boxShadow: activeCategory === cat
-                    ? `0 4px 12px rgba(123,28,28,0.3)`
-                    : `0 1px 4px rgba(0,0,0,0.06)`,
-                  border: activeCategory === cat ? "none" : `1px solid ${C.goldLight}`,
-                  transition: "all 0.2s ease",
-                  transform: activeCategory === cat ? "translateY(-1px)" : "translateY(0)",
-                }}>{cat}</button>
-              ))}
-            </div>
-
-            {/* Menu Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(196px, 1fr))", gap: 16 }}>
-              {filteredMenu.map(item => (
-                <div
-                  key={item.id}
-                  style={{
-                    background: C.white, borderRadius: 14, border: `1px solid ${C.goldLight}`,
-                    overflow: "hidden", display: "flex", flexDirection: "column",
-                    boxShadow: "0 2px 10px rgba(123,28,28,0.06)",
-                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 8px 24px rgba(123,28,28,0.14)`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)";   e.currentTarget.style.boxShadow = "0 2px 10px rgba(123,28,28,0.06)"; }}
-                >
-                  <div style={{ position: "relative" }}>
-                    <img src={item.image} alt={item.name} style={{ width: "100%", height: 130, objectFit: "cover" }} />
-                    <span style={{
-                      position: "absolute", top: 8, left: 8,
-                      background: `rgba(74,15,15,0.85)`, color: C.goldLight,
-                      padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                    }}>{item.category}</span>
-                  </div>
-                  <div style={{ padding: 13, display: "flex", flexDirection: "column", flex: 1 }}>
-                    <h5 style={{ margin: "0 0 6px 0", fontSize: 14, color: C.charcoal, height: 36, overflow: "hidden", lineHeight: 1.3 }}>{item.name}</h5>
-                    <p style={{ margin: "0 0 10px 0", fontWeight: "700", color: C.crimson, fontSize: 14 }}>Rp {currency(item.price)}</p>
-                    {item.hasSizes && (
-                      <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-                        {item.sizes.map(sz => (
-                          <button key={sz.label} onClick={() => handleSizeSelect(item, sz)} style={{
-                            flex: 1, padding: "4px 0", fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-                            border: `1.5px solid ${selectedSizes[item.name]?.label === sz.label ? C.crimson : C.goldLight}`,
-                            borderRadius: 6,
-                            background: selectedSizes[item.name]?.label === sz.label
-                              ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonDark})`
-                              : C.cream,
-                            color: selectedSizes[item.name]?.label === sz.label ? C.white : C.charcoal,
-                            fontWeight: 600, transition: "all 0.15s ease",
-                          }}>{sz.label}</button>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{ display: "flex", gap: 6, marginTop: "auto" }}>
-                      <button
-                        onClick={() => addToCart(item)}
-                        style={{
-                          flex: 1, padding: "8px 0", fontSize: 12, fontFamily: "inherit", cursor: "pointer",
-                          background: `linear-gradient(135deg, ${C.crimson}, ${C.crimsonDark})`,
-                          color: C.white, border: "none", borderRadius: 8, fontWeight: "700", letterSpacing: 0.3,
-                          boxShadow: `0 3px 10px rgba(123,28,28,0.28)`, transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-                        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-                      >+ Tambah</button>
-                      <button
-                        onClick={() => openModifiers(item)}
-                        style={{
-                          padding: "8px 10px", background: C.cream, color: C.muted,
-                          border: `1px solid ${C.goldLight}`, borderRadius: 8, cursor: "pointer",
-                          fontSize: 12, fontFamily: "inherit", fontWeight: 600, transition: "all 0.15s ease",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = C.creamDark; e.currentTarget.style.color = C.crimson; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = C.cream;     e.currentTarget.style.color = C.muted; }}
-                      >Custom</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
         )}
-      </div>
+      </main>
 
-      {/* ── CART SIDEBAR ── */}
-      {!adminMode && (
-        <div
-  style={{
-    width: "100%",
-    maxWidth: 368,
-    background: C.white,
-    borderLeft: `1px solid ${C.goldLight}`,
-    display: "flex",
-    flexDirection: "column",
-    minHeight: "100vh",
-  }}
->
-          <div style={{ padding: 20, borderBottom: `1px solid ${C.creamDark}`, background: C.cream }}>
-            <h3 style={{ margin: 0, color: C.crimsonDark, letterSpacing: 0.5 }}>Struk Pesanan Aktif</h3>
-            {customerTable ? (
-              <span style={{ fontSize: 11, background: C.greenLight, color: C.green, padding: "3px 10px", borderRadius: 12, fontWeight: "700", display: "inline-block", marginTop: 6, letterSpacing: 0.3 }}>🪑 Meja: {customerTable}</span>
-            ) : (
-              <span style={{ fontSize: 11, background: "#FEE2E2", color: C.red, padding: "3px 10px", borderRadius: 12, fontWeight: "700", display: "inline-block", marginTop: 6 }}>⚠️ Belum Pilih Meja</span>
-            )}
-          </div>
-
-          {/* Customer form */}
-          <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8, background: C.parchment, borderBottom: `1px solid ${C.creamDark}` }}>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input type="text" placeholder="Nama Pelanggan" value={customerName} onChange={e => setCustomerName(e.target.value)} style={{ ...inputStyle, flex: 1, fontSize: 12 }} />
-              <input type="text" placeholder="No Meja"        value={customerTable} onChange={e => setCustomerTable(e.target.value)} style={{ ...inputStyle, width: 70, fontSize: 12, textAlign: "center" }} />
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <select value={orderType}      onChange={e => setOrderType(e.target.value)}      style={{ ...inputStyle, flex: 1, fontSize: 12 }}>
-                <option>Dine-In</option><option>Takeaway</option>
-              </select>
-              <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} style={{ ...inputStyle, flex: 1, fontSize: 12 }}>
-                <option>Tunai</option><option>QRIS</option><option>Dompet Digital</option>
-              </select>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input type="text" placeholder="Kode Promo (KAFE10)" value={promoCode} onChange={e => setPromoCode(e.target.value)} style={{ ...inputStyle, flex: 1, fontSize: 12 }} />
-              <button onClick={applyPromoCode} style={{ ...btn.primary, padding: "0 14px", fontSize: 12, fontFamily: "inherit" }}
-                onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-              >Klaim</button>
-            </div>
-          </div>
-
-          {/* Cart items */}
-          <div style={{ flex: 1, padding: "16px 18px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-            {cart.length === 0 ? (
-              <div style={{ textAlign: "center", color: C.mutedLight, marginTop: 40 }}>
-                <span style={{ fontSize: 44 }}>🛒</span>
-                <p style={{ fontSize: 13, marginTop: 10, color: C.muted }}>Keranjang kasir kosong.<br />Silakan klik menu di kiri.</p>
-              </div>
-            ) : (
-              cart.map((item, idx) => (
-                <div key={idx} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "start",
-                  paddingBottom: 10, borderBottom: `1px solid ${C.creamDark}`, fontSize: 13,
-                }}>
-                  <div>
-                    <span style={{ fontWeight: "700", color: C.charcoal }}>{item.name} {item.size ? `(${item.size})` : ""}</span>
-                    <span style={{ color: C.muted, marginLeft: 6 }}>x{item.qty}</span>
-                    {item.modifiers && (
-                      <div style={{ fontSize: 11, color: C.mutedLight, marginTop: 2 }}>
-                        {item.modifiers.temp} • {item.modifiers.sweetness}
-                        {item.modifiers.addOns?.length ? ` • +${item.modifiers.addOns.join(", ")}` : ""}
-                      </div>
-                    )}
-                  </div>
-                  <span style={{ fontWeight: "700", color: C.crimson }}>Rp {currency(item.price * item.qty)}</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Totals & checkout */}
-          <div style={{ padding: 18, background: C.cream, borderTop: `1px solid ${C.goldLight}` }}>
-            {[
-              { label: "Subtotal",                                                      value: currency(subtotal) },
-              { label: "Pajak (11%)",                                                   value: currency(Math.round(subtotal * taxRate)) },
-              { label: `Service Fee (${orderType === "Dine-In" ? "5%" : "0%"})`,        value: currency(orderType === "Dine-In" ? Math.round(subtotal * serviceRate) : 0) },
-            ].map(row => (
-              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.muted, marginBottom: 5 }}>
-                <span>{row.label}</span><span>Rp {row.value}</span>
-              </div>
-            ))}
-            {promoDiscount > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.red, marginBottom: 5 }}>
-                <span>Potongan Diskon</span><span>- Rp {currency(promoDiscount)}</span>
-              </div>
-            )}
-            <div style={{
-              display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: "700", color: C.charcoal,
-              marginTop: 10, paddingTop: 10, borderTop: `1.5px dashed ${C.goldLight}`,
-            }}>
-              <span>Total Akhir</span>
-              <span style={{ color: C.crimson, fontSize: 18 }}>
-                Rp {currency(Math.max(0,
-                  subtotal
-                  + Math.round(subtotal * taxRate)
-                  + (orderType === "Dine-In" ? Math.round(subtotal * serviceRate) : 0)
-                  - promoDiscount
-                ))}
-              </span>
-            </div>
-            <button
-              onClick={handleCheckout}
-              style={{ ...btn.primary, width: "100%", padding: 14, fontSize: 14, marginTop: 14, letterSpacing: 0.8, fontFamily: "inherit" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 20px rgba(123,28,28,0.45)`; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)";   e.currentTarget.style.boxShadow = `0 4px 14px rgba(123,28,28,0.35)`; }}
-            >🚀 CETAK STRUK & BAYAR</button>
+      {/* ─ MOBILE CART DRAWER ─ */}
+      {showMobileCart && (
+        <div className="modal-backdrop" onClick={()=>setShowMobileCart(false)}>
+          <div className="cart-drawer" onClick={e=>e.stopPropagation()}>
+            <div className="drawer-handle" />
+            <CartPanel
+              cart={cart} setCart={setCart}
+              customerName={customerName} setCustomerName={setCustomerName}
+              customerTable={customerTable} setCustomerTable={setCustomerTable}
+              orderType={orderType} setOrderType={setOrderType}
+              paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+              promoCode={promoCode} setPromoCode={setPromoCode}
+              promoDiscount={promoDiscount} applyPromoCode={applyPromoCode}
+              subtotal={subtotal} taxRate={taxRate} serviceRate={serviceRate}
+              onCheckout={handleCheckout}
+              onClose={()=>setShowMobileCart(false)}
+            />
           </div>
         </div>
       )}
 
-      {/* ── MODIFIER MODAL ── */}
-      {showModifiers && modifierItem && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(44,24,16,0.6)",
-          display: "flex", justifyContent: "center", alignItems: "center", zIndex: 999,
-        }}>
-          <div style={{
-            background: C.cream, padding: 28, borderRadius: 18, width: 350,
-            boxShadow: `0 20px 50px rgba(74,15,15,0.35)`, border: `1px solid ${C.goldLight}`,
-          }}>
-            <h3 style={{ margin: "0 0 18px 0", color: C.crimsonDark, fontSize: 16, letterSpacing: 0.5 }}>✦ Kustom {modifierItem.name}</h3>
-
-            {modifierItem.category === "Drinks" && (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: "700", color: C.muted, letterSpacing: 0.5 }}>SUHU MINUMAN</label>
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  {temperatureOptions.map(t => (
-                    <button key={t} onClick={() => setModifierState(p => ({ ...p, temp: t }))} style={{
-                      flex: 1, padding: 9,
-                      border:     `1.5px solid ${modifierState.temp === t ? C.crimson : C.goldLight}`,
-                      borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13,
-                      background:  modifierState.temp === t ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonDark})` : C.white,
-                      color:       modifierState.temp === t ? C.white : C.charcoal,
-                      fontWeight: "600", transition: "all 0.15s ease",
-                    }}>{t}</button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, fontWeight: "700", color: C.muted, letterSpacing: 0.5 }}>TAMBAHAN PILIHAN</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
-                {(modifierItem.category === "Drinks" ? drinkAddOns : foodAddOns).map(o => (
-                  <button key={o} onClick={() => toggleTopping(o)} style={{
-                    padding: 9,
-                    border:      `1.5px solid ${modifierState.addOns.includes(o) ? C.crimson : C.goldLight}`,
-                    borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                    background:  modifierState.addOns.includes(o) ? `linear-gradient(135deg, ${C.crimson}, ${C.crimsonDark})` : C.white,
-                    color:       modifierState.addOns.includes(o) ? C.white : C.charcoal,
-                    fontWeight: "600", transition: "all 0.15s ease",
-                  }}>{o}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
-              <button
-                onClick={addCustomizedToCart}
-                style={{ ...btn.primary, flex: 1, padding: 11, fontSize: 13, fontFamily: "inherit", letterSpacing: 0.3 }}
-                onMouseEnter={e => e.currentTarget.style.transform = "scale(1.02)"}
-                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-              >✓ Simpan</button>
-              <button onClick={closeModifiers} style={{ ...btn.ghost, padding: "11px 18px", fontFamily: "inherit", fontSize: 13 }}>Batal</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── DIGITAL RECEIPT MODAL ── */}
-      {showReceipt && latestOrder && (
-        <DigitalReceiptModal
-          order={latestOrder}
-          onPrintPhysical={() => { printReceipt(latestOrder); setShowReceipt(false); }}
-          onClose={() => setShowReceipt(false)}
+      {/* ─ MODIFIER MODAL ─ */}
+      {showModifier && modifierItem && (
+        <ModifierModal
+          item={modifierItem}
+          onAdd={(item, state) => { addToCart(item, state); setShowModifier(false); setModifierItem(null); }}
+          onClose={() => { setShowModifier(false); setModifierItem(null); }}
         />
       )}
 
-      {/* ── TOAST ── */}
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          padding: "12px 26px", borderRadius: 10,
-          background: toast.type === "warning"
-            ? `linear-gradient(135deg, #DC2626, #991B1B)`
-            : `linear-gradient(135deg, ${C.crimsonDark}, ${C.charcoal})`,
-          color: C.goldLight, fontWeight: "700", zIndex: 1000,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.2)", fontSize: 13, letterSpacing: 0.4,
-          border: `1px solid rgba(201,169,110,0.3)`, whiteSpace: "nowrap",
-        }}>{toast.message}</div>
+      {/* ─ EDIT MENU MODAL ─ */}
+      {editingMenu && (
+        <Modal onClose={()=>setEditingMenu(null)}>
+          <div className="modal-title">
+            <strong>Edit Menu</strong>
+            <button className="btn-icon" onClick={()=>setEditingMenu(null)}>✕</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:16}}>
+            <input className="form-input" placeholder="Nama Menu" value={menuForm.name}
+              onChange={e=>setMenuForm(p=>({...p,name:e.target.value}))} />
+            <input className="form-input" type="number" placeholder="Harga" value={menuForm.price}
+              onChange={e=>setMenuForm(p=>({...p,price:e.target.value}))} />
+          </div>
+          <div className="modal-footer">
+            <span />
+            <div className="modal-footer-btns">
+              <button className="btn-ghost" onClick={()=>setEditingMenu(null)}>Batal</button>
+              <button className="btn-primary" onClick={()=>{
+                setMenuItems(p=>p.map(m=>m.id===editingMenu.id?{...m,...menuForm,price:Number(menuForm.price),image:imageMap[m.id]||m.image}:m));
+                fetch(`http://localhost:5000/api/menu/${editingMenu.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({price:Number(menuForm.price),name:menuForm.name})}).catch(()=>{});
+                setEditingMenu(null);
+                sendToast("Menu diperbarui");
+              }}>Simpan</button>
+            </div>
+          </div>
+        </Modal>
       )}
+
+      {/* ─ RECEIPT MODAL ─ */}
+      {showReceipt && history[0] && (
+        <ReceiptModal
+          order={history[0]}
+          onPrint={()=>{ printReceipt(history[0]); setShowReceipt(false); }}
+          onClose={()=>setShowReceipt(false)}
+        />
+      )}
+
+      <Toast toast={toast} />
     </div>
   );
 }
-
-export default App;
