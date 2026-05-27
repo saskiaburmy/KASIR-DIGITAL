@@ -1,5 +1,6 @@
 ﻿import "./App.css";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useState } from "react";
 
 import logo       from "./assets/KAFE_KAFEAN_LOGO.jpg";
 import caffe      from "./assets/caffe.jpg";
@@ -18,6 +19,11 @@ import strawberry from "./assets/strawberry.jpg";
 import music      from "./assets/alex-morgan-bebop-coffee-shop-517090.mp3";
 
 const currency = (v) => new Intl.NumberFormat("id-ID").format(v || 0);
+const [isLogin, setIsLogin] = useState(true);
+
+const [username, setUsername] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
 
 const temperatureOptions = ["Panas", "Dingin"];
 const drinkAddOns = ["Es Krim", "Boba", "Espresso Shot"];
@@ -96,6 +102,88 @@ function Toast({ toast }) {
   );
 }
 
+const handleRegister = async () => {
+
+  try {
+
+    const response = await fetch("http://localhost:5000/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        username,
+        email,
+        password
+      })
+    });
+
+    const data = await response.json();
+
+    alert(data.message);
+
+  } catch (error) {
+
+    console.log(error);
+    alert("Register gagal");
+  }
+};
+const handleLogin = async () => {
+
+  try {
+
+    const response = await fetch("http://localhost:5000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        username,
+        password
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.token) {
+
+      localStorage.setItem("token", data.token);
+
+      alert("Login berhasil 🔥");
+
+    } else {
+
+      alert(data.message);
+    }
+
+  } catch (error) {
+
+    console.log(error);
+    alert("Login gagal");
+  }
+};
+
+<div className="login-box">
+
+  <input
+    type="text"
+    placeholder="Username"
+    onChange={(e) => setUsername(e.target.value)}
+  />
+
+  <input
+    type="password"
+    placeholder="Password"
+    onChange={(e) => setPassword(e.target.value)}
+  />
+
+  <button onClick={handleLogin}>
+    LOGIN
+  </button>
+
+</div>
 /* ─── MODAL WRAPPER ──────────────────────────────────────────────── */
 function Modal({ onClose, children, wide }) {
   return (

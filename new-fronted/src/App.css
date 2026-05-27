@@ -1505,7 +1505,38 @@ img { max-width: 100%; display: block; }
     padding: 12px;
     padding-top: calc(var(--header-h) + 14px);
   }
+ 
+  .kasir-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 
+  .desktop-cart {
+    display: none;
+  }
+
+  .cart-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    height: 85vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 1000;
+  }
+  
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .form-input { font-size: 14px; padding: 10px; }
+  
+  .modal-box {
+    width: 95%;
+    max-height: 80vh;
+  }
   /* Kasir layout: full width, hide desktop cart */
   .kasir-layout {
     grid-template-columns: 1fr;
