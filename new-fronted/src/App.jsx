@@ -1,6 +1,6 @@
 ﻿import "./App.css";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useState } from "react";
+import { supabase } from "./supabaseClient";
 
 import logo       from "./assets/KAFE_KAFEAN_LOGO.jpg";
 import caffe      from "./assets/caffe.jpg";
@@ -18,13 +18,10 @@ import stoberi    from "./assets/stoberi.jpg";
 import strawberry from "./assets/strawberry.jpg";
 import music      from "./assets/alex-morgan-bebop-coffee-shop-517090.mp3";
 
+// ─── HELPERS ────────────────────────────────────────────────────────
 const currency = (v) => new Intl.NumberFormat("id-ID").format(v || 0);
-const [isLogin, setIsLogin] = useState(true);
 
-const [username, setUsername] = useState("");
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-
+// ─── KONSTANTA ──────────────────────────────────────────────────────
 const temperatureOptions = ["Panas", "Dingin"];
 const drinkAddOns = ["Es Krim", "Boba", "Espresso Shot"];
 const foodAddOns  = ["Extra Keju", "Extra Saus", "Tambahan Sambal"];
@@ -43,12 +40,12 @@ const initialTables = [
 ];
 
 const initialStock = [
-  {id:"coffee",label:"Biji Kopi",qty:120,threshold:20},
-  {id:"milk",  label:"Susu",     qty:90, threshold:20},
-  {id:"cup",   label:"Cup",      qty:70, threshold:15},
-  {id:"tea",   label:"Teh",      qty:80, threshold:15},
-  {id:"biscuit",label:"Biskuit", qty:50, threshold:10},
-  {id:"sugar", label:"Gula",     qty:100,threshold:20},
+  {id:"coffee", label:"Biji Kopi", qty:120, threshold:20},
+  {id:"milk",   label:"Susu",      qty:90,  threshold:20},
+  {id:"cup",    label:"Cup",       qty:70,  threshold:15},
+  {id:"tea",    label:"Teh",       qty:80,  threshold:15},
+  {id:"biscuit",label:"Biskuit",   qty:50,  threshold:10},
+  {id:"sugar",  label:"Gula",      qty:100, threshold:20},
 ];
 
 const recipeMap = {
@@ -68,31 +65,32 @@ const recipeMap = {
 };
 
 const initialPromoCodes = [
-  {code:"KAFE10",   type:"percent",amount:10,   description:"Diskon 10% semua pelanggan",      active:true},
-  {code:"BARISTA20",type:"fixed",  amount:20000,description:"Potongan Rp20.000 min. Rp100.000",active:true},
+  {code:"KAFE10",    type:"percent", amount:10,    description:"Diskon 10% semua pelanggan",       active:true},
+  {code:"BARISTA20", type:"fixed",   amount:20000, description:"Potongan Rp20.000 min. Rp100.000", active:true},
 ];
 
 const initialMenuItems = [
-  {id:1, name:"Fresh Salad",            category:"Food",   image:salad,      price:28000,sold:12,status:"Tersedia",hasSizes:false},
-  {id:2, name:"Pizza Panini",           category:"Food",   image:panini,     price:42000,sold:19,status:"Tersedia",hasSizes:false},
-  {id:3, name:"Creamy Pasta",           category:"Food",   image:pasta,      price:38000,sold:15,status:"Tersedia",hasSizes:false},
-  {id:4, name:"French Fries",           category:"Snack",  image:fries,      price:18000,sold:21,status:"Tersedia",hasSizes:false},
-  {id:5, name:"Chocolate Cookies",      category:"Snack",  image:cookies,    price:20000,sold:7, status:"Tersedia",hasSizes:false},
-  {id:6, name:"Dough Boy",              category:"Snack",  image:donat,      price:25000,sold:9, status:"Tersedia",hasSizes:false},
-  {id:7, name:"Fudgy Brownies",         category:"Dessert",image:fudgy,      price:30000,sold:13,status:"Tersedia",hasSizes:false},
-  {id:8, name:"Chocolate Strawberry",   category:"Dessert",image:strawberry, price:33000,sold:11,status:"Tersedia",hasSizes:false},
-  {id:9, name:"Strawberry Crunch Cream",category:"Dessert",image:stoberi,    price:35000,sold:5, status:"Tersedia",hasSizes:false},
-  {id:10,name:"Hazelnut Coffee",        category:"Drinks", image:hazelnut,   price:22000,sold:30,status:"Tersedia",hasSizes:true,
+  {id:1,  name:"Fresh Salad",             category:"Food",    image:salad,      price:28000, sold:12, status:"Tersedia", hasSizes:false},
+  {id:2,  name:"Pizza Panini",            category:"Food",    image:panini,     price:42000, sold:19, status:"Tersedia", hasSizes:false},
+  {id:3,  name:"Creamy Pasta",            category:"Food",    image:pasta,      price:38000, sold:15, status:"Tersedia", hasSizes:false},
+  {id:4,  name:"French Fries",            category:"Snack",   image:fries,      price:18000, sold:21, status:"Tersedia", hasSizes:false},
+  {id:5,  name:"Chocolate Cookies",       category:"Snack",   image:cookies,    price:20000, sold:7,  status:"Tersedia", hasSizes:false},
+  {id:6,  name:"Dough Boy",               category:"Snack",   image:donat,      price:25000, sold:9,  status:"Tersedia", hasSizes:false},
+  {id:7,  name:"Fudgy Brownies",          category:"Dessert", image:fudgy,      price:30000, sold:13, status:"Tersedia", hasSizes:false},
+  {id:8,  name:"Chocolate Strawberry",    category:"Dessert", image:strawberry, price:33000, sold:11, status:"Tersedia", hasSizes:false},
+  {id:9,  name:"Strawberry Crunch Cream", category:"Dessert", image:stoberi,    price:35000, sold:5,  status:"Tersedia", hasSizes:false},
+  {id:10, name:"Hazelnut Coffee",         category:"Drinks",  image:hazelnut,   price:22000, sold:30, status:"Tersedia", hasSizes:true,
    sizes:[{label:"S",price:22000},{label:"M",price:27000},{label:"L",price:32000}]},
-  {id:11,name:"Matcha Latte",           category:"Drinks", image:matcha,     price:24000,sold:26,status:"Tersedia",hasSizes:true,
+  {id:11, name:"Matcha Latte",            category:"Drinks",  image:matcha,     price:24000, sold:26, status:"Tersedia", hasSizes:true,
    sizes:[{label:"S",price:24000},{label:"M",price:29000},{label:"L",price:34000}]},
-  {id:12,name:"Caffe Latte",            category:"Drinks", image:caffe,      price:21000,sold:18,status:"Tersedia",hasSizes:true,
+  {id:12, name:"Caffe Latte",             category:"Drinks",  image:caffe,      price:21000, sold:18, status:"Tersedia", hasSizes:true,
    sizes:[{label:"S",price:21000},{label:"M",price:26000},{label:"L",price:31000}]},
-  {id:13,name:"Lemon Tea",              category:"Drinks", image:lemon,      price:18000,sold:14,status:"Tersedia",hasSizes:true,
+  {id:13, name:"Lemon Tea",               category:"Drinks",  image:lemon,      price:18000, sold:14, status:"Tersedia", hasSizes:true,
    sizes:[{label:"S",price:18000},{label:"M",price:22000},{label:"L",price:26000}]},
 ];
 
-/* ─── TOAST ─────────────────────────────────────────────────────── */
+
+// ─── KOMPONEN: TOAST ─────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
   return (
@@ -102,89 +100,7 @@ function Toast({ toast }) {
   );
 }
 
-const handleRegister = async () => {
-
-  try {
-
-    const response = await fetch("http://localhost:5000/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-        username,
-        email,
-        password
-      })
-    });
-
-    const data = await response.json();
-
-    alert(data.message);
-
-  } catch (error) {
-
-    console.log(error);
-    alert("Register gagal");
-  }
-};
-const handleLogin = async () => {
-
-  try {
-
-    const response = await fetch("http://localhost:5000/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-        username,
-        password
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.token) {
-
-      localStorage.setItem("token", data.token);
-
-      alert("Login berhasil 🔥");
-
-    } else {
-
-      alert(data.message);
-    }
-
-  } catch (error) {
-
-    console.log(error);
-    alert("Login gagal");
-  }
-};
-
-<div className="login-box">
-
-  <input
-    type="text"
-    placeholder="Username"
-    onChange={(e) => setUsername(e.target.value)}
-  />
-
-  <input
-    type="password"
-    placeholder="Password"
-    onChange={(e) => setPassword(e.target.value)}
-  />
-
-  <button onClick={handleLogin}>
-    LOGIN
-  </button>
-
-</div>
-/* ─── MODAL WRAPPER ──────────────────────────────────────────────── */
+// ─── KOMPONEN: MODAL WRAPPER ──────────────────────────────────────────
 function Modal({ onClose, children, wide }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -195,10 +111,10 @@ function Modal({ onClose, children, wide }) {
   );
 }
 
-/* ─── RECEIPT MODAL ──────────────────────────────────────────────── */
+// ─── KOMPONEN: RECEIPT MODAL ──────────────────────────────────────────
 function ReceiptModal({ order, onPrint, onClose }) {
   if (!order) return null;
-  const id = `ST-${String(order.timestamp).slice(-6)}`;
+  const id = `ST-${String(order.timestamp || Date.now()).slice(-6)}`;
   return (
     <Modal onClose={onClose}>
       <div className="receipt-header">
@@ -219,7 +135,7 @@ function ReceiptModal({ order, onPrint, onClose }) {
             ["Tipe",      order.orderType     || "—"],
             ["Bayar",     order.paymentMethod || "—"],
             ["Tanggal",   order.date          || "—"],
-          ].map(([k,v]) => (
+          ].map(([k, v]) => (
             <div key={k} className="receipt-row">
               <span className="receipt-label">{k}</span>
               <span className="receipt-value">{v}</span>
@@ -245,7 +161,7 @@ function ReceiptModal({ order, onPrint, onClose }) {
             ["Subtotal",    `Rp ${currency(order.subtotal)}`],
             ["Pajak (11%)", `Rp ${currency(order.tax)}`],
             ["Service Fee", `Rp ${currency(order.service)}`],
-          ].map(([k,v]) => (
+          ].map(([k, v]) => (
             <div key={k} className="receipt-row">
               <span className="receipt-label">{k}</span>
               <span className="receipt-value">{v}</span>
@@ -273,7 +189,7 @@ function ReceiptModal({ order, onPrint, onClose }) {
   );
 }
 
-/* ─── MODIFIER MODAL ─────────────────────────────────────────────── */
+// ─── KOMPONEN: MODIFIER MODAL ─────────────────────────────────────────
 function ModifierModal({ item, onAdd, onClose }) {
   const [state, setState] = useState({
     size:      item.sizes ? item.sizes[0] : null,
@@ -284,7 +200,7 @@ function ModifierModal({ item, onAdd, onClose }) {
   });
 
   const toggleAddOn = (t) =>
-    setState(p => ({ ...p, addOns: p.addOns.includes(t) ? p.addOns.filter(x=>x!==t) : [...p.addOns, t] }));
+    setState(p => ({ ...p, addOns: p.addOns.includes(t) ? p.addOns.filter(x => x !== t) : [...p.addOns, t] }));
 
   const price = state.size?.price || item.price;
 
@@ -302,7 +218,7 @@ function ModifierModal({ item, onAdd, onClose }) {
             {item.sizes.map(sz => (
               <button key={sz.label}
                 className={`chip ${state.size?.label === sz.label ? "chip-active" : ""}`}
-                onClick={() => setState(p => ({...p, size:sz}))}>
+                onClick={() => setState(p => ({ ...p, size: sz }))}>
                 {sz.label} <span>Rp {currency(sz.price)}</span>
               </button>
             ))}
@@ -317,7 +233,7 @@ function ModifierModal({ item, onAdd, onClose }) {
             {temperatureOptions.map(t => (
               <button key={t}
                 className={`chip ${state.temp === t ? "chip-active" : ""}`}
-                onClick={() => setState(p => ({...p, temp:t}))}>
+                onClick={() => setState(p => ({ ...p, temp: t }))}>
                 {t === "Panas" ? "🔥" : "🧊"} {t}
               </button>
             ))}
@@ -342,7 +258,7 @@ function ModifierModal({ item, onAdd, onClose }) {
         className="mod-notes"
         placeholder="Catatan khusus (opsional)..."
         value={state.notes}
-        onChange={e => setState(p => ({...p, notes:e.target.value}))}
+        onChange={e => setState(p => ({ ...p, notes: e.target.value }))}
       />
 
       <div className="modal-footer">
@@ -356,19 +272,22 @@ function ModifierModal({ item, onAdd, onClose }) {
   );
 }
 
-/* ─── CART PANEL (shared desktop sidebar + mobile drawer) ────────── */
-function CartPanel({ cart, setCart, customerName, setCustomerName, customerTable, setCustomerTable,
-  orderType, setOrderType, paymentMethod, setPaymentMethod, promoCode, setPromoCode,
-  promoDiscount, applyPromoCode, subtotal, taxRate, serviceRate, onCheckout, onClose }) {
-
+// ─── KOMPONEN: CART PANEL ─────────────────────────────────────────────
+function CartPanel({
+  cart, setCart, customerName, setCustomerName,
+  customerTable, setCustomerTable, orderType, setOrderType,
+  paymentMethod, setPaymentMethod, promoCode, setPromoCode,
+  promoDiscount, applyPromoCode, subtotal, taxRate, serviceRate,
+  onCheckout, onClose,
+}) {
   const tax     = Math.round(subtotal * taxRate);
   const service = orderType === "Dine-In" ? Math.round(subtotal * serviceRate) : 0;
   const total   = Math.max(0, subtotal + tax + service - promoDiscount);
 
-  const removeItem = (idx) => setCart(prev => prev.filter((_,i) => i !== idx));
-  const changeQty  = (idx, delta) => setCart(prev => prev.map((item, i) =>
-    i === idx ? {...item, qty: Math.max(1, item.qty + delta)} : item
-  ));
+  const removeItem = (idx) => setCart(prev => prev.filter((_, i) => i !== idx));
+  const changeQty  = (idx, delta) => setCart(prev =>
+    prev.map((item, i) => i === idx ? { ...item, qty: Math.max(1, item.qty + delta) } : item)
+  );
 
   return (
     <div className="cart-panel">
@@ -380,27 +299,31 @@ function CartPanel({ cart, setCart, customerName, setCustomerName, customerTable
           : <span className="badge badge-red">⚠ Belum pilih meja</span>}
       </div>
 
-      {/* Form */}
       <div className="cart-form">
         <div className="form-row">
-          <input className="form-input" placeholder="Nama Pelanggan" value={customerName} onChange={e=>setCustomerName(e.target.value)} />
-          <input className="form-input small" placeholder="No Meja" value={customerTable} onChange={e=>setCustomerTable(e.target.value)} />
+          <input className="form-input" placeholder="Nama Pelanggan"
+            value={customerName} onChange={e => setCustomerName(e.target.value)} />
+          <input className="form-input small" placeholder="No Meja"
+            value={customerTable} onChange={e => setCustomerTable(e.target.value)} />
         </div>
         <div className="form-row">
-          <select className="form-input" value={orderType} onChange={e=>setOrderType(e.target.value)}>
-            <option>Dine-In</option><option>Takeaway</option>
+          <select className="form-input" value={orderType} onChange={e => setOrderType(e.target.value)}>
+            <option>Dine-In</option>
+            <option>Takeaway</option>
           </select>
-          <select className="form-input" value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
-            <option>Tunai</option><option>QRIS</option><option>Dompet Digital</option>
+          <select className="form-input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+            <option>Tunai</option>
+            <option>QRIS</option>
+            <option>Dompet Digital</option>
           </select>
         </div>
         <div className="form-row">
-          <input className="form-input" placeholder="Kode Promo (KAFE10)" value={promoCode} onChange={e=>setPromoCode(e.target.value)} />
+          <input className="form-input" placeholder="Kode Promo (KAFE10)"
+            value={promoCode} onChange={e => setPromoCode(e.target.value)} />
           <button className="btn-primary compact" onClick={applyPromoCode}>Klaim</button>
         </div>
       </div>
 
-      {/* Items */}
       <div className="cart-items">
         {cart.length === 0
           ? <div className="cart-empty">🛒<p>Keranjang kosong</p></div>
@@ -413,23 +336,24 @@ function CartPanel({ cart, setCart, customerName, setCustomerName, customerTable
                 )}
               </div>
               <div className="cart-item-controls">
-                <button className="qty-btn" onClick={() => changeQty(idx,-1)}>−</button>
+                <button className="qty-btn" onClick={() => changeQty(idx, -1)}>−</button>
                 <span>{item.qty}</span>
-                <button className="qty-btn" onClick={() => changeQty(idx,+1)}>+</button>
-                <span className="cart-item-price">Rp {currency(item.price*item.qty)}</span>
-                <button className="btn-icon danger" onClick={()=>removeItem(idx)}>🗑</button>
+                <button className="qty-btn" onClick={() => changeQty(idx, +1)}>+</button>
+                <span className="cart-item-price">Rp {currency(item.price * item.qty)}</span>
+                <button className="btn-icon danger" onClick={() => removeItem(idx)}>🗑</button>
               </div>
             </div>
           ))
         }
       </div>
 
-      {/* Summary */}
       <div className="cart-summary">
         <div className="summary-row"><span>Subtotal</span><span>Rp {currency(subtotal)}</span></div>
         <div className="summary-row"><span>Pajak 11%</span><span>Rp {currency(tax)}</span></div>
-        <div className="summary-row"><span>Service {orderType==="Dine-In"?"5%":"0%"}</span><span>Rp {currency(service)}</span></div>
-        {promoDiscount > 0 && <div className="summary-row discount"><span>Diskon</span><span>−Rp {currency(promoDiscount)}</span></div>}
+        <div className="summary-row"><span>Service {orderType === "Dine-In" ? "5%" : "0%"}</span><span>Rp {currency(service)}</span></div>
+        {promoDiscount > 0 && (
+          <div className="summary-row discount"><span>Diskon</span><span>−Rp {currency(promoDiscount)}</span></div>
+        )}
         <div className="summary-total"><span>Total Akhir</span><span>Rp {currency(total)}</span></div>
         <button className="btn-checkout" onClick={onCheckout}>🚀 Bayar Sekarang</button>
       </div>
@@ -437,28 +361,29 @@ function CartPanel({ cart, setCart, customerName, setCustomerName, customerTable
   );
 }
 
-/* ─── TOP SELLING CHART ──────────────────────────────────────────── */
+// ─── KOMPONEN: TOP CHART ──────────────────────────────────────────────
 function TopChart({ menuItems, history }) {
   const salesMap = {};
   menuItems.forEach(m => { salesMap[m.name] = m.sold || 0; });
-  history.filter(o=>o.status!=="Dibatalkan").forEach(order =>
-    (order.orders||[]).forEach(item => {
-      salesMap[item.name] = (salesMap[item.name]||0) + (item.qty||1);
+  history.filter(o => o.status !== "Dibatalkan").forEach(order =>
+    (order.orders || []).forEach(item => {
+      salesMap[item.name] = (salesMap[item.name] || 0) + (item.qty || 1);
     })
   );
   const sorted = Object.entries(salesMap)
-    .map(([name,count]) => ({name,count}))
-    .sort((a,b) => b.count-a.count).slice(0,6);
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
   const max = sorted[0]?.count || 1;
 
   return (
     <div className="chart-wrap">
       <h4>🏆 Menu Terlaris</h4>
       <div className="bar-chart">
-        {sorted.map((item,i) => (
+        {sorted.map((item, i) => (
           <div key={item.name} className="bar-col">
             <span className="bar-count">{item.count}</span>
-            <div className="bar" style={{height:`${Math.max(8,(item.count/max)*160)}px`, opacity: 1-(i*0.1)}} />
+            <div className="bar" style={{ height: `${Math.max(8, (item.count / max) * 160)}px`, opacity: 1 - (i * 0.1) }} />
             <span className="bar-name">{item.name.split(" ")[0]}</span>
           </div>
         ))}
@@ -467,36 +392,44 @@ function TopChart({ menuItems, history }) {
   );
 }
 
-/* ─── MAIN APP ───────────────────────────────────────────────────── */
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────
 export default function App() {
+
+  // ── State: Auth & UI ──
   const [loading,        setLoading]        = useState(true);
   const [loggedIn,       setLoggedIn]       = useState(false);
   const [registerMode,   setRegisterMode]   = useState(false);
   const [loginUser,      setLoginUser]      = useState("");
   const [loginPass,      setLoginPass]      = useState("");
-  const [userRole,       setUserRole]       = useState("");
+  const [userEmail,      setUserEmail]      = useState("");
+  const [userRole,       setUserRole]       = useState("Kasir");
   const [toast,          setToast]          = useState(null);
+
+  // ── State: Data ──
   const [menuItems,      setMenuItems]      = useState([]);
   const [stockItems,     setStockItems]     = useState(initialStock);
   const [tables,         setTables]         = useState(initialTables);
   const [promoCodes]                        = useState(initialPromoCodes);
   const [history,        setHistory]        = useState([]);
 
-  // UI state
-  const [activeNav,      setActiveNav]      = useState("kasir"); // kasir | meja | admin
+  // ── State: Navigasi ──
+  const [activeNav,      setActiveNav]      = useState("kasir");
   const [adminTab,       setAdminTab]       = useState("ringkasan");
   const [search,         setSearch]         = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+
+  // ── State: Modal & UI extras ──
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showReceipt,    setShowReceipt]    = useState(false);
   const [showModifier,   setShowModifier]   = useState(false);
   const [modifierItem,   setModifierItem]   = useState(null);
   const [editingMenu,    setEditingMenu]    = useState(null);
-  const [menuForm,       setMenuForm]       = useState({name:"",price:"",category:"Food",image:""});
+  const [menuForm,       setMenuForm]       = useState({ name:"", price:"", category:"Food", image:"" });
   const [isMusicOn,      setIsMusicOn]      = useState(true);
   const [showSidebar,    setShowSidebar]    = useState(false);
 
-  // Order state
+  // ── State: Order ──
   const [cart,           setCart]           = useState([]);
   const [customerName,   setCustomerName]   = useState("");
   const [customerTable,  setCustomerTable]  = useState("");
@@ -506,155 +439,370 @@ export default function App() {
   const [promoDiscount,  setPromoDiscount]  = useState(0);
   const [selectedSizes,  setSelectedSizes]  = useState({});
 
-  const audioRef = useRef(null);
-  const taxRate  = 0.11;
+  const audioRef    = useRef(null);
+  const taxRate     = 0.11;
   const serviceRate = 0.05;
 
+
+  // ── EFFECT: Cek session login saat app pertama dibuka ──
   useEffect(() => {
-    fetch("http://localhost:5000/api/menu")
-      .then(r => r.json())
-      .then(data => {
-        const merged = initialMenuItems.map(local => {
-          const remote = data.find(b => b.id === local.id);
-          return remote ? {...local, price:remote.price, name:remote.name, image:imageMap[local.id]||local.image} : local;
-        });
-        setMenuItems(merged);
-      })
-      .catch(() => setMenuItems(initialMenuItems));
+    // Cek apakah user sudah login sebelumnya (session masih aktif)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setLoggedIn(true);
+        setUserEmail(session.user.email);
+        setUserRole(session.user.email === "admin@gmail.com" ? "Admin" : "Kasir");
+      }
+      setLoading(false);
+    });
+
+    // Dengarkan perubahan status auth (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setLoggedIn(true);
+        setUserEmail(session.user.email);
+        setUserRole(session.user.email === "admin@gmail.com" ? "Admin" : "Kasir");
+      } else {
+        setLoggedIn(false);
+        setUserEmail("");
+        setUserRole("Kasir");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 1400); return () => clearTimeout(t); }, []);
 
-  const sendToast = useCallback((message, type="success") => {
-    setToast({message,type});
+  // ── EFFECT: Load menu dari Supabase ──
+  useEffect(() => {
+    supabase.from("menu").select("*").then(({ data, error }) => {
+      if (error || !data) {
+        setMenuItems(initialMenuItems);
+        return;
+      }
+      // Gabungkan data Supabase dengan image lokal
+      const merged = initialMenuItems.map(local => {
+        const remote = data.find(b => b.id === local.id);
+        return remote
+          ? { ...local, price: remote.price, name: remote.name, image: imageMap[local.id] || local.image }
+          : local;
+      });
+      setMenuItems(merged);
+    });
+  }, []);
+
+
+  // ── EFFECT: Load riwayat transaksi dari Supabase setelah login ──
+  useEffect(() => {
+    if (!loggedIn) return;
+
+    supabase
+      .from("transaksi")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error || !data) return;
+
+        const parsed = data.map(row => ({
+          id:            row.id,
+          customerName:  row.customer_name,
+          customerTable: row.customer_table,
+          orderType:     row.order_type,
+          paymentMethod: row.payment_method,
+          orders:        row.orders || [],
+          subtotal:      row.subtotal,
+          tax:           row.tax,
+          service:       row.service,
+          discount:      row.discount,
+          promoCode:     row.promo_code,
+          total:         row.total,
+          status:        row.status,
+          timestamp:     new Date(row.created_at).getTime(),
+          date:          new Date(row.created_at).toLocaleString("id-ID"),
+        }));
+
+        setHistory(parsed);
+      });
+  }, [loggedIn]);
+
+
+  // ── Toast helper ──
+  const sendToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const isGmail = v => /^[^\s@]+@gmail\.com$/i.test(v||"");
 
-  const handleLogin = () => {
-    if (!isGmail(loginUser)) { sendToast("Masukkan Gmail yang valid","warning"); return; }
-    if (!loginPass)           { sendToast("Masukkan password","warning"); return; }
-    setLoggedIn(true);
-    setUserRole(loginUser.toLowerCase()==="admin@gmail.com" ? "Admin" : "Kasir");
-    sendToast("Login berhasil!");
+  // ── LOGIN dengan Supabase ──
+  const handleLogin = async () => {
+    if (!loginUser || !loginPass) {
+      sendToast("Email dan password wajib diisi", "warning");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email:    loginUser.trim(),
+      password: loginPass,
+    });
+
+    if (error) {
+      // Terjemahkan pesan error ke Bahasa Indonesia
+      const pesanError = {
+        "Invalid login credentials": "Email atau password salah",
+        "Email not confirmed":        "Email belum diverifikasi",
+        "Too many requests":          "Terlalu banyak percobaan, coba lagi nanti",
+      };
+      sendToast(pesanError[error.message] || error.message, "warning");
+      return;
+    }
+
+    setUserEmail(data.user.email);
+    setUserRole(data.user.email === "admin@gmail.com" ? "Admin" : "Kasir");
+    sendToast("Login berhasil 🔥");
   };
 
-  const handleRegister = () => {
-    if (!isGmail(loginUser)) { sendToast("Masukkan Gmail yang valid","warning"); return; }
-    if (!loginPass)           { sendToast("Masukkan password","warning"); return; }
-    sendToast("Registrasi berhasil (Simulasi)");
-    setRegisterMode(false); setLoginPass("");
+
+  // ── REGISTER dengan Supabase ──
+  const handleRegister = async () => {
+    if (!loginUser || !loginPass) {
+      sendToast("Email dan password wajib diisi", "warning");
+      return;
+    }
+
+    if (loginPass.length < 6) {
+      sendToast("Password minimal 6 karakter", "warning");
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email:    loginUser.trim(),
+      password: loginPass,
+    });
+
+    if (error) {
+      const pesanError = {
+        "User already registered": "Email sudah terdaftar, silakan login",
+        "Password should be at least 6 characters": "Password minimal 6 karakter",
+      };
+      sendToast(pesanError[error.message] || error.message, "warning");
+      return;
+    }
+
+    sendToast("Registrasi berhasil! Silakan login 🔥");
+    setRegisterMode(false);
+    setLoginPass("");
   };
 
-  const subtotal = cart.reduce((acc,item) => acc + item.price*item.qty, 0);
 
-  const getPromo = code => promoCodes.find(p => p.code.toUpperCase()===code.trim().toUpperCase());
-  const calcDiscount = (total, code) => {
+  // ── LOGOUT ──
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setCart([]);
+    setHistory([]);
+    setCustomerName("");
+    setCustomerTable("");
+    setPromoCode("");
+    setPromoDiscount(0);
+    sendToast("Sampai jumpa! 👋");
+  };
+
+
+  // ── Kalkulasi subtotal ──
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+
+  const getPromo      = code => promoCodes.find(p => p.code.toUpperCase() === code.trim().toUpperCase());
+  const calcDiscount  = (total, code) => {
     const p = getPromo(code);
-    if (!p||!p.active) return 0;
-    return p.type==="percent" ? Math.round(total*p.amount/100) : p.amount;
+    if (!p || !p.active) return 0;
+    return p.type === "percent" ? Math.round(total * p.amount / 100) : p.amount;
   };
 
   const applyPromoCode = () => {
-    if (!promoCode) { sendToast("Masukkan kode promo","warning"); return; }
+    if (!promoCode) { sendToast("Masukkan kode promo", "warning"); return; }
     const p = getPromo(promoCode);
-    if (!p) { sendToast("Kode promo tidak valid","warning"); setPromoDiscount(0); return; }
+    if (!p) { sendToast("Kode promo tidak valid", "warning"); setPromoDiscount(0); return; }
     const d = calcDiscount(subtotal, promoCode);
     setPromoDiscount(d);
     sendToast(`Promo ${p.code} aktif! Hemat Rp ${currency(d)}`);
   };
 
+
+  // ── Update stok lokal setelah checkout ──
   const updateStock = (cartItems) => {
     setStockItems(prev => prev.map(stock => {
-      const used = cartItems.reduce((sum,ci) => {
-        const recipe = recipeMap[ci.name]||[];
-        const ing = recipe.find(r=>r.id===stock.id);
-        return ing ? sum + ing.qty*ci.qty : sum;
+      const used = cartItems.reduce((sum, ci) => {
+        const recipe = recipeMap[ci.name] || [];
+        const ing    = recipe.find(r => r.id === stock.id);
+        return ing ? sum + ing.qty * ci.qty : sum;
       }, 0);
-      return {...stock, qty:Math.max(0,stock.qty-used)};
+      return { ...stock, qty: Math.max(0, stock.qty - used) };
     }));
   };
 
-  const addToCart = (item, modState=null) => {
-    if (item.status==="Habis") { sendToast("Menu ini sedang habis","warning"); return; }
+
+  // ── Tambah ke keranjang ──
+  const addToCart = (item, modState = null) => {
+    if (item.status === "Habis") { sendToast("Menu ini sedang habis", "warning"); return; }
     const chosenSize = modState?.size || selectedSizes[item.name] || item.sizes?.[0];
     const newItem = {
-      id:item.id, name:item.name, size:chosenSize?.label||"",
-      price:chosenSize?.price||item.price, qty:1,
-      modifiers: modState ? {addOns:modState.addOns, temp:modState.temp, sweetness:modState.sweetness} : null,
+      id:        item.id,
+      name:      item.name,
+      size:      chosenSize?.label || "",
+      price:     chosenSize?.price || item.price,
+      qty:       1,
+      modifiers: modState ? { addOns: modState.addOns, temp: modState.temp, sweetness: modState.sweetness } : null,
     };
     setCart(prev => [...prev, newItem]);
     sendToast(`${item.name} ditambahkan`);
   };
 
-  const handleCheckout = () => {
-    if (cart.length===0)                          { sendToast("Keranjang masih kosong","warning"); return; }
-    if (orderType==="Dine-In" && !customerTable)  { sendToast("Pilih nomor meja dulu","warning"); return; }
+
+  // ── CHECKOUT & simpan ke Supabase ──
+  const handleCheckout = async () => {
+    if (cart.length === 0)                         { sendToast("Keranjang masih kosong", "warning"); return; }
+    if (orderType === "Dine-In" && !customerTable) { sendToast("Pilih nomor meja dulu", "warning");  return; }
+
     const discount = calcDiscount(subtotal, promoCode);
     const tax      = Math.round(subtotal * taxRate);
-    const service  = orderType==="Dine-In" ? Math.round(subtotal * serviceRate) : 0;
+    const service  = orderType === "Dine-In" ? Math.round(subtotal * serviceRate) : 0;
     const total    = Math.max(0, subtotal + tax + service - discount);
-    const ts = Date.now();
+    const ts       = Date.now();
+
     const order = {
       customerName, customerTable, paymentMethod, orderType,
       subtotal, total, tax, service, discount,
-      promoCode: promoCode||"",
-      orders: cart,
+      promoCode: promoCode || "",
+      orders:    cart,
       timestamp: ts,
-      date: new Date(ts).toLocaleString("id-ID"),
-      status: "Selesai",
+      date:      new Date(ts).toLocaleString("id-ID"),
+      status:    "Selesai",
     };
-    setHistory(prev => [order,...prev]);
+
+    // Tampilkan dulu ke UI (langsung)
+    setHistory(prev => [order, ...prev]);
     updateStock(cart);
+
+    // Simpan ke Supabase (background)
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("transaksi").insert({
+      user_id:        user?.id,
+      customer_name:  customerName,
+      customer_table: customerTable,
+      order_type:     orderType,
+      payment_method: paymentMethod,
+      orders:         cart,
+      subtotal,
+      tax,
+      service,
+      discount,
+      promo_code:     promoCode || "",
+      total,
+      status:         "Selesai",
+    });
+
+    if (error) {
+      console.error("Gagal simpan transaksi:", error);
+      sendToast("Transaksi berhasil tapi gagal tersimpan ke cloud", "warning");
+    }
+
+    // Reset state
     setCart([]);
     setPromoCode("");
     setPromoDiscount(0);
     setShowMobileCart(false);
     setShowReceipt(true);
+
+    // Update status meja
     if (customerTable) {
-      setTables(prev => prev.map(t => t.name===customerTable ? {...t,status:"Terisi"} : t));
+      setTables(prev => prev.map(t => t.name === customerTable ? { ...t, status: "Terisi" } : t));
     }
-    sendToast("Pembayaran berhasil!");
+
+    sendToast("Pembayaran berhasil! 🎉");
   };
 
+
+  // ── Cetak struk ──
   const printReceipt = (order) => {
-    const popup = window.open("","_blank","width=420,height=700");
-    const items = (order.orders||[]).map(it =>
-      `<tr><td>${it.name}${it.size?` (${it.size})`:""} x${it.qty}</td><td>Rp ${currency(it.price*it.qty)}</td></tr>`
+    const popup = window.open("", "_blank", "width=420,height=700");
+    const items = (order.orders || []).map(it =>
+      `<tr><td>${it.name}${it.size ? ` (${it.size})` : ""} x${it.qty}</td><td>Rp ${currency(it.price * it.qty)}</td></tr>`
     ).join("");
     popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Struk</title>
       <style>body{font-family:monospace;padding:16px}table{width:100%}th,td{text-align:left;padding:4px}
       .total{font-size:18px;font-weight:bold;margin-top:12px}</style></head><body>
       <h3 style="text-align:center">SEJUTA TAWA</h3>
-      <p>Pelanggan: ${order.customerName||"-"}</p>
-      <p>Meja: ${order.customerTable||"-"}</p>
+      <p>Pelanggan: ${order.customerName || "-"}</p>
+      <p>Meja: ${order.customerTable || "-"}</p>
       <p>Tanggal: ${order.date}</p>
       <hr><table>${items}</table><hr>
       <p>Pajak: Rp ${currency(order.tax)}</p>
       <p>Service: Rp ${currency(order.service)}</p>
-      ${order.discount>0?`<p>Diskon: -Rp ${currency(order.discount)}</p>`:""}
+      ${order.discount > 0 ? `<p>Diskon: -Rp ${currency(order.discount)}</p>` : ""}
       <p class="total">TOTAL: Rp ${currency(order.total)}</p>
       <hr><p style="text-align:center">Terima kasih!</p>
       <script>window.print();setTimeout(()=>window.close(),500);</script></body></html>`);
     popup.document.close();
   };
 
+
+  // ── Toggle musik ──
   const toggleMusic = () => {
     if (!audioRef.current) return;
     isMusicOn ? audioRef.current.pause() : audioRef.current.play();
     setIsMusicOn(p => !p);
   };
 
+
+  // ── Filter menu ──
   const filteredMenu = menuItems.filter(item =>
-    (activeCategory==="All" || item.category===activeCategory) &&
+    (activeCategory === "All" || item.category === activeCategory) &&
     item.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalRevenue = history.filter(o=>o.status!=="Dibatalkan").reduce((s,o)=>s+o.total,0);
-  const orderCount   = history.filter(o=>o.status!=="Dibatalkan").length;
+  const totalRevenue = history.filter(o => o.status !== "Dibatalkan").reduce((s, o) => s + o.total, 0);
+  const orderCount   = history.filter(o => o.status !== "Dibatalkan").length;
 
-  // ── LOADING ──────────────────────────────────────────────────────
+  const navItems = [
+    { id:"kasir", icon:"🛒", label:"Kasir" },
+    { id:"meja",  icon:"🪑", label:"Meja" },
+    { id:"admin", icon:"📊", label:"Admin" },
+  ];
+
+  // ── Sidebar content (reusable) ──
+  const SidebarContent = ({ onNav }) => (
+    <>
+      <div className="sidebar-brand">
+        <img src={logo} alt="logo" className="sidebar-logo" />
+        <div>
+          <strong>Sejuta Tawa</strong>
+          <small>{userRole} · {userEmail.split("@")[0]}</small>
+        </div>
+      </div>
+
+      <button className="music-toggle" onClick={toggleMusic}>
+        {isMusicOn ? "🎵 Musik Aktif" : "🔇 Musik Mati"}
+      </button>
+
+      <nav className="sidebar-nav">
+        {navItems.map(n => (
+          <button key={n.id}
+            className={`nav-btn ${activeNav === n.id ? "nav-active" : ""}`}
+            onClick={() => { setActiveNav(n.id); onNav?.(); }}>
+            <span>{n.icon}</span>{n.label}
+          </button>
+        ))}
+      </nav>
+
+      <button className="btn-logout" onClick={() => { handleLogout(); onNav?.(); }}>
+        ← Keluar
+      </button>
+    </>
+  );
+
+
+  // ════════════════════════════════════════
+  // RENDER: LOADING
+  // ════════════════════════════════════════
   if (loading) return (
     <div className="loading-screen">
       <div className="loading-logo-ring">
@@ -665,23 +813,39 @@ export default function App() {
     </div>
   );
 
-  // ── LOGIN ────────────────────────────────────────────────────────
+
+  // ════════════════════════════════════════
+  // RENDER: LOGIN / REGISTER
+  // ════════════════════════════════════════
   if (!loggedIn) return (
     <div className="login-page">
       <div className="login-card">
         <img src={logo} alt="logo" className="login-avatar" />
         <h2>{registerMode ? "Daftar Akun" : "Masuk Kasir"}</h2>
         <p>{registerMode ? "Buat akun kasir baru" : "Login untuk mengakses sistem"}</p>
-        <input className="login-input" type="email" placeholder="Email Gmail"
-          value={loginUser} onChange={e=>setLoginUser(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&(registerMode?handleRegister():handleLogin())} />
-        <input className="login-input" type="password" placeholder="Password"
-          value={loginPass} onChange={e=>setLoginPass(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&(registerMode?handleRegister():handleLogin())} />
-        <button className="btn-checkout" onClick={registerMode?handleRegister:handleLogin}>
+
+        <input
+          className="login-input"
+          type="email"
+          placeholder="Email"
+          value={loginUser}
+          onChange={e => setLoginUser(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && (registerMode ? handleRegister() : handleLogin())}
+        />
+        <input
+          className="login-input"
+          type="password"
+          placeholder="Password (min. 6 karakter)"
+          value={loginPass}
+          onChange={e => setLoginPass(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && (registerMode ? handleRegister() : handleLogin())}
+        />
+
+        <button className="btn-checkout" onClick={registerMode ? handleRegister : handleLogin}>
           {registerMode ? "Daftar Sekarang" : "Masuk →"}
         </button>
-        <span className="login-switch" onClick={()=>{setRegisterMode(p=>!p);setLoginPass("");}}>
+
+        <span className="login-switch" onClick={() => { setRegisterMode(p => !p); setLoginPass(""); }}>
           {registerMode ? "Sudah punya akun? Login" : "Belum punya akun? Daftar"}
         </span>
       </div>
@@ -689,85 +853,41 @@ export default function App() {
     </div>
   );
 
-  // ── MAIN ─────────────────────────────────────────────────────────
-  const navItems = [
-    {id:"kasir", icon:"🛒", label:"Kasir"},
-    {id:"meja",  icon:"🪑", label:"Meja"},
-    {id:"admin", icon:"📊", label:"Admin"},
-  ];
 
+  // ════════════════════════════════════════
+  // RENDER: MAIN APP
+  // ════════════════════════════════════════
   return (
     <div className="app-shell">
       <audio ref={audioRef} src={music} autoPlay loop />
 
-      {/* ─ SIDEBAR (desktop) ─ */}
+      {/* ─ SIDEBAR DESKTOP ─ */}
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <img src={logo} alt="logo" className="sidebar-logo" />
-          <div>
-            <strong>Sejuta Tawa</strong>
-            <small>{userRole}</small>
-          </div>
-        </div>
-
-        <button className="music-toggle" onClick={toggleMusic}>
-          {isMusicOn ? "🎵 Musik Aktif" : "🔇 Musik Mati"}
-        </button>
-
-        <nav className="sidebar-nav">
-          {navItems.map(n => (
-            <button key={n.id}
-              className={`nav-btn ${activeNav===n.id?"nav-active":""}`}
-              onClick={() => { setActiveNav(n.id); setShowSidebar(false); }}>
-              <span>{n.icon}</span>{n.label}
-            </button>
-          ))}
-        </nav>
-
-        <button className="btn-logout" onClick={()=>{setLoggedIn(false);setUserRole("");}}>
-          ← Keluar
-        </button>
+        <SidebarContent />
       </aside>
 
-      {/* ─ MOBILE HEADER ─ */}
+      {/* ─ HEADER MOBILE ─ */}
       <header className="mobile-header">
-        <button className="hamburger" onClick={()=>setShowSidebar(true)}>☰</button>
+        <button className="hamburger" onClick={() => setShowSidebar(true)}>☰</button>
         <div className="mobile-brand">
           <img src={logo} alt="logo" className="mobile-logo" />
           <span>Sejuta Tawa</span>
         </div>
-        {activeNav==="kasir" && (
-          <button className="cart-fab-mini" onClick={()=>setShowMobileCart(true)}>
+        {activeNav === "kasir" && (
+          <button className="cart-fab-mini" onClick={() => setShowMobileCart(true)}>
             🛒
-            {cart.length>0 && <span className="cart-badge">{cart.length}</span>}
+            {cart.length > 0 && <span className="cart-badge">{cart.length}</span>}
           </button>
         )}
       </header>
 
-      {/* ─ MOBILE SIDEBAR DRAWER ─ */}
+      {/* ─ SIDEBAR DRAWER MOBILE ─ */}
       {showSidebar && (
-        <div className="sidebar-overlay" onClick={()=>setShowSidebar(false)}>
-          <aside className="sidebar-drawer" onClick={e=>e.stopPropagation()}>
-            <div className="sidebar-brand">
-              <img src={logo} alt="logo" className="sidebar-logo" />
-              <div><strong>Sejuta Tawa</strong><small>{userRole}</small></div>
-              <button className="btn-icon" onClick={()=>setShowSidebar(false)} style={{marginLeft:"auto"}}>✕</button>
-            </div>
-            <button className="music-toggle" onClick={toggleMusic}>
-              {isMusicOn ? "🎵 Musik Aktif" : "🔇 Musik Mati"}
-            </button>
-            <nav className="sidebar-nav">
-              {navItems.map(n => (
-                <button key={n.id}
-                  className={`nav-btn ${activeNav===n.id?"nav-active":""}`}
-                  onClick={() => { setActiveNav(n.id); setShowSidebar(false); }}>
-                  <span>{n.icon}</span>{n.label}
-                </button>
-              ))}
-            </nav>
-            <button className="btn-logout" onClick={()=>{setLoggedIn(false);setUserRole("");setShowSidebar(false);}}>
-              ← Keluar
-            </button>
+        <div className="sidebar-overlay" onClick={() => setShowSidebar(false)}>
+          <aside className="sidebar-drawer" onClick={e => e.stopPropagation()}>
+            <button className="btn-icon" onClick={() => setShowSidebar(false)}
+              style={{ alignSelf:"flex-end", margin:"8px 8px 0" }}>✕</button>
+            <SidebarContent onNav={() => setShowSidebar(false)} />
           </aside>
         </div>
       )}
@@ -775,33 +895,32 @@ export default function App() {
       {/* ─ MAIN CONTENT ─ */}
       <main className="main-content">
 
-        {/* ── KASIR ── */}
-        {activeNav==="kasir" && (
+        {/* ══ KASIR ══ */}
+        {activeNav === "kasir" && (
           <div className="kasir-layout">
             <div className="kasir-menu">
-              {/* Search + Filter */}
               <div className="menu-controls">
                 <input className="search-input" type="text" placeholder="🔍 Cari menu..."
-                  value={search} onChange={e=>setSearch(e.target.value)} />
+                  value={search} onChange={e => setSearch(e.target.value)} />
                 <div className="category-pills">
-                  {["All","Food","Drinks","Snack","Dessert"].map(cat => (
+                  {["All", "Food", "Drinks", "Snack", "Dessert"].map(cat => (
                     <button key={cat}
-                      className={`pill ${activeCategory===cat?"pill-active":""}`}
-                      onClick={() => setActiveCategory(cat)}>{cat}</button>
+                      className={`pill ${activeCategory === cat ? "pill-active" : ""}`}
+                      onClick={() => setActiveCategory(cat)}>{cat}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* Grid */}
               <div className="menu-grid">
                 {filteredMenu.map(item => (
                   <div key={item.id} className="menu-card">
                     <div className="menu-card-img-wrap">
-                      <img src={imageMap[item.id]||item.image} alt={item.name}
+                      <img src={imageMap[item.id] || item.image} alt={item.name}
                         className="menu-card-img"
-                        onError={e=>{ e.target.style.display="none"; }} />
+                        onError={e => { e.target.style.display = "none"; }} />
                       <span className="menu-cat-badge">{item.category}</span>
-                      {item.status==="Habis" && <div className="menu-sold-out">Habis</div>}
+                      {item.status === "Habis" && <div className="menu-sold-out">Habis</div>}
                     </div>
                     <div className="menu-card-body">
                       <h5 className="menu-card-name">{item.name}</h5>
@@ -810,16 +929,16 @@ export default function App() {
                         <div className="size-row">
                           {item.sizes.map(sz => (
                             <button key={sz.label}
-                              className={`size-chip ${selectedSizes[item.name]?.label===sz.label?"size-active":""}`}
-                              onClick={() => setSelectedSizes(p=>({...p,[item.name]:sz}))}>
+                              className={`size-chip ${selectedSizes[item.name]?.label === sz.label ? "size-active" : ""}`}
+                              onClick={() => setSelectedSizes(p => ({ ...p, [item.name]: sz }))}>
                               {sz.label}
                             </button>
                           ))}
                         </div>
                       )}
                       <div className="menu-card-actions">
-                        <button className="btn-add" onClick={()=>addToCart(item)}>+ Tambah</button>
-                        <button className="btn-custom" onClick={()=>{setModifierItem(item);setShowModifier(true);}}>⚙</button>
+                        <button className="btn-add" onClick={() => addToCart(item)}>+ Tambah</button>
+                        <button className="btn-custom" onClick={() => { setModifierItem(item); setShowModifier(true); }}>⚙</button>
                       </div>
                     </div>
                   </div>
@@ -842,10 +961,10 @@ export default function App() {
               />
             </div>
 
-            {/* Mobile Cart FAB */}
-            {cart.length>0 && (
+            {/* Mobile FAB */}
+            {cart.length > 0 && (
               <div className="mobile-cart-fab-bar">
-                <button className="btn-checkout" onClick={()=>setShowMobileCart(true)}>
+                <button className="btn-checkout" onClick={() => setShowMobileCart(true)}>
                   🛒 {cart.length} item · Rp {currency(subtotal)}
                 </button>
               </div>
@@ -853,8 +972,8 @@ export default function App() {
           </div>
         )}
 
-        {/* ── MEJA ── */}
-        {activeNav==="meja" && (
+        {/* ══ MEJA ══ */}
+        {activeNav === "meja" && (
           <div className="page-section">
             <div className="page-header">
               <h2>Manajemen Meja</h2>
@@ -863,13 +982,15 @@ export default function App() {
             <div className="table-grid">
               {tables.map(t => (
                 <button key={t.name}
-                  className={`table-card ${t.status==="Terisi"?"table-occupied":""} ${customerTable===t.name?"table-selected":""}`}
+                  className={`table-card ${t.status === "Terisi" ? "table-occupied" : ""} ${customerTable === t.name ? "table-selected" : ""}`}
                   onClick={() => {
-                    if (t.status==="Kosong") {
+                    if (t.status === "Kosong") {
                       setCustomerTable(t.name);
                       setActiveNav("kasir");
                       sendToast(`Meja ${t.name} dipilih`);
-                    } else sendToast("Meja sedang terisi","warning");
+                    } else {
+                      sendToast("Meja sedang terisi", "warning");
+                    }
                   }}>
                   <span className="table-icon">🪑</span>
                   <strong>{t.name}</strong>
@@ -880,34 +1001,35 @@ export default function App() {
           </div>
         )}
 
-        {/* ── ADMIN ── */}
-        {activeNav==="admin" && (
+        {/* ══ ADMIN ══ */}
+        {activeNav === "admin" && (
           <div className="page-section">
             <div className="page-header">
               <h2>Dashboard Admin</h2>
               <div className="admin-tabs">
                 {[
-                  {id:"ringkasan",  label:"Ringkasan"},
-                  {id:"menu",       label:"Kelola Menu"},
-                  {id:"stok",       label:"Stok"},
-                  {id:"transaksi",  label:"Transaksi"},
+                  { id:"ringkasan", label:"Ringkasan" },
+                  { id:"menu",      label:"Kelola Menu" },
+                  { id:"stok",      label:"Stok" },
+                  { id:"transaksi", label:"Transaksi" },
                 ].map(t => (
                   <button key={t.id}
-                    className={`tab-btn ${adminTab===t.id?"tab-active":""}`}
-                    onClick={()=>setAdminTab(t.id)}>{t.label}</button>
+                    className={`tab-btn ${adminTab === t.id ? "tab-active" : ""}`}
+                    onClick={() => setAdminTab(t.id)}>{t.label}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Ringkasan */}
-            {adminTab==="ringkasan" && (
+            {/* Tab: Ringkasan */}
+            {adminTab === "ringkasan" && (
               <>
                 <div className="stat-grid">
                   {[
-                    {label:"Total Penjualan",  value:`Rp ${currency(totalRevenue)}`, icon:"💰"},
-                    {label:"Total Transaksi",   value:orderCount,                      icon:"🧾"},
-                    {label:"Meja Terisi",       value:`${tables.filter(t=>t.status==="Terisi").length}/${tables.length}`, icon:"🪑"},
-                    {label:"Poin Kasir",        value:`${history.reduce((a,o)=>a+Math.floor(o.total/10000),0)} Pts`,      icon:"⭐"},
+                    { label:"Total Penjualan", value:`Rp ${currency(totalRevenue)}`, icon:"💰" },
+                    { label:"Total Transaksi", value:orderCount, icon:"🧾" },
+                    { label:"Meja Terisi", value:`${tables.filter(t => t.status === "Terisi").length}/${tables.length}`, icon:"🪑" },
+                    { label:"Poin Kasir",  value:`${history.reduce((a, o) => a + Math.floor(o.total / 10000), 0)} Pts`, icon:"⭐" },
                   ].map(c => (
                     <div key={c.label} className="stat-card">
                       <div className="stat-icon">{c.icon}</div>
@@ -922,60 +1044,95 @@ export default function App() {
               </>
             )}
 
-            {/* Menu */}
-            {adminTab==="menu" && (
+            {/* Tab: Kelola Menu */}
+            {adminTab === "menu" && (
               <div className="admin-section">
                 <div className="admin-menu-list">
                   {menuItems.map(item => (
                     <div key={item.id} className="admin-menu-row">
-                      <img src={imageMap[item.id]||item.image} alt={item.name} className="admin-menu-thumb" />
+                      <img src={imageMap[item.id] || item.image} alt={item.name} className="admin-menu-thumb" />
                       <div className="admin-menu-info">
                         <strong>{item.name}</strong>
                         <small>{item.category} · Rp {currency(item.price)}</small>
                       </div>
                       <div className="admin-menu-actions">
-                        <button className="btn-sm" onClick={()=>{setEditingMenu(item);setMenuForm({name:item.name,price:String(item.price),category:item.category,image:""});}}>✏ Edit</button>
-                        <button className="btn-sm danger" onClick={()=>{setMenuItems(p=>p.filter(m=>m.id!==item.id));sendToast("Menu dihapus");}}>🗑</button>
+                        <button className="btn-sm" onClick={() => {
+                          setEditingMenu(item);
+                          setMenuForm({ name:item.name, price:String(item.price), category:item.category, image:"" });
+                        }}>✏ Edit</button>
+                        <button className="btn-sm danger" onClick={() => {
+                          setMenuItems(p => p.filter(m => m.id !== item.id));
+                          sendToast("Menu dihapus");
+                        }}>🗑</button>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Add new */}
                 <div className="admin-form-card">
                   <h4>➕ Tambah Menu Baru</h4>
                   <div className="admin-form-grid">
-                    <input className="form-input" placeholder="Nama Menu" value={menuForm.name} onChange={e=>setMenuForm(p=>({...p,name:e.target.value}))} />
-                    <input className="form-input" type="number" placeholder="Harga" value={menuForm.price} onChange={e=>setMenuForm(p=>({...p,price:e.target.value}))} />
-                    <select className="form-input" value={menuForm.category} onChange={e=>setMenuForm(p=>({...p,category:e.target.value}))}>
+                    <input className="form-input" placeholder="Nama Menu"
+                      value={menuForm.name} onChange={e => setMenuForm(p => ({ ...p, name: e.target.value }))} />
+                    <input className="form-input" type="number" placeholder="Harga"
+                      value={menuForm.price} onChange={e => setMenuForm(p => ({ ...p, price: e.target.value }))} />
+                    <select className="form-input" value={menuForm.category}
+                      onChange={e => setMenuForm(p => ({ ...p, category: e.target.value }))}>
                       <option>Food</option><option>Drinks</option><option>Snack</option><option>Dessert</option>
                     </select>
                     <input className="form-input" type="file" accept="image/*"
-                      onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setMenuForm(p=>({...p,image:ev.target.result}));r.readAsDataURL(f);}} />
+                      onChange={e => {
+                        const f = e.target.files[0];
+                        if (!f) return;
+                        const r = new FileReader();
+                        r.onload = ev => setMenuForm(p => ({ ...p, image: ev.target.result }));
+                        r.readAsDataURL(f);
+                      }} />
                   </div>
-                  <button className="btn-primary" onClick={()=>{
-                    if(!menuForm.name||!menuForm.price){sendToast("Nama & harga wajib diisi","warning");return;}
-                    setMenuItems(p=>[...p,{id:Date.now(),name:menuForm.name,category:menuForm.category,image:menuForm.image||"",price:Number(menuForm.price),sold:0,status:"Tersedia",hasSizes:false}]);
-                    setMenuForm({name:"",price:"",category:"Food",image:""});
+                  <button className="btn-primary" onClick={() => {
+                    if (!menuForm.name || !menuForm.price) { sendToast("Nama & harga wajib diisi", "warning"); return; }
+                    const newMenu = {
+                      id:       Date.now(),
+                      name:     menuForm.name,
+                      category: menuForm.category,
+                      image:    menuForm.image || "",
+                      price:    Number(menuForm.price),
+                      sold:     0,
+                      status:   "Tersedia",
+                      hasSizes: false,
+                    };
+                    setMenuItems(p => [...p, newMenu]);
+                    // Simpan ke Supabase
+                    supabase.from("menu").insert({
+                      id:       newMenu.id,
+                      name:     newMenu.name,
+                      category: newMenu.category,
+                      price:    newMenu.price,
+                    }).then(({ error }) => {
+                      if (error) console.error("Gagal simpan menu:", error);
+                    });
+                    setMenuForm({ name:"", price:"", category:"Food", image:"" });
                     sendToast("Menu baru ditambahkan!");
                   }}>Simpan Menu</button>
                 </div>
               </div>
             )}
 
-            {/* Stok */}
-            {adminTab==="stok" && (
+            {/* Tab: Stok */}
+            {adminTab === "stok" && (
               <div className="stock-grid">
                 {stockItems.map(s => (
-                  <div key={s.id} className={`stock-card ${s.qty<=s.threshold?"stock-low":""}`}>
+                  <div key={s.id} className={`stock-card ${s.qty <= s.threshold ? "stock-low" : ""}`}>
                     <div className="stock-label">
                       <strong>{s.label}</strong>
-                      {s.qty<=s.threshold && <span className="badge badge-red">Hampir Habis</span>}
+                      {s.qty <= s.threshold && <span className="badge badge-red">Hampir Habis</span>}
                     </div>
                     <input className="form-input" type="number" value={s.qty}
-                      onChange={e=>setStockItems(p=>p.map(x=>x.id===s.id?{...x,qty:Math.max(0,Number(e.target.value))}:x))} />
+                      onChange={e => setStockItems(p => p.map(x =>
+                        x.id === s.id ? { ...x, qty: Math.max(0, Number(e.target.value)) } : x
+                      ))} />
                     <div className="stock-bar-wrap">
-                      <div className="stock-bar" style={{width:`${Math.min(100,(s.qty/150)*100)}%`}} />
+                      <div className="stock-bar" style={{ width:`${Math.min(100, (s.qty / 150) * 100)}%` }} />
                     </div>
                     <small>{s.qty} unit tersisa</small>
                   </div>
@@ -983,31 +1140,39 @@ export default function App() {
               </div>
             )}
 
-            {/* Transaksi */}
-            {adminTab==="transaksi" && (
+            {/* Tab: Transaksi */}
+            {adminTab === "transaksi" && (
               <div className="trans-list">
-                {history.length===0 && <p className="empty-state">Belum ada transaksi</p>}
-                {history.map((h,i) => (
-                  <div key={i} className={`trans-card ${h.status==="Dibatalkan"?"trans-void":""}`}>
-                    <div className="trans-info">
-                      <strong>{h.customerName||"Pelanggan"}</strong>
-                      <small>Meja {h.customerTable||"-"} · {h.date}</small>
-                      <small>{h.paymentMethod} · {h.orderType}</small>
+                {history.length === 0
+                  ? <p className="empty-state">Belum ada transaksi</p>
+                  : history.map((h, i) => (
+                    <div key={h.id || i} className={`trans-card ${h.status === "Dibatalkan" ? "trans-void" : ""}`}>
+                      <div className="trans-info">
+                        <strong>{h.customerName || "Pelanggan"}</strong>
+                        <small>Meja {h.customerTable || "-"} · {h.date}</small>
+                        <small>{h.paymentMethod} · {h.orderType}</small>
+                      </div>
+                      <div className="trans-right">
+                        <span className="trans-amount">Rp {currency(h.total)}</span>
+                        <span className={`badge ${h.status === "Dibatalkan" ? "badge-red" : "badge-green"}`}>
+                          {h.status || "Selesai"}
+                        </span>
+                        {h.status !== "Dibatalkan" && (
+                          <button className="btn-sm danger" onClick={async () => {
+                            // Update di Supabase kalau ada id
+                            if (h.id && typeof h.id === "number") {
+                              await supabase.from("transaksi")
+                                .update({ status: "Dibatalkan" })
+                                .eq("id", h.id);
+                            }
+                            setHistory(p => p.map((x, j) => j === i ? { ...x, status:"Dibatalkan" } : x));
+                            sendToast("Pesanan dibatalkan", "warning");
+                          }}>Void</button>
+                        )}
+                      </div>
                     </div>
-                    <div className="trans-right">
-                      <span className="trans-amount">Rp {currency(h.total)}</span>
-                      <span className={`badge ${h.status==="Dibatalkan"?"badge-red":"badge-green"}`}>
-                        {h.status||"Selesai"}
-                      </span>
-                      {h.status!=="Dibatalkan" && (
-                        <button className="btn-sm danger" onClick={()=>{
-                          setHistory(p=>p.map((x,j)=>j===i?{...x,status:"Dibatalkan"}:x));
-                          sendToast("Pesanan dibatalkan","warning");
-                        }}>Void</button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                }
               </div>
             )}
           </div>
@@ -1016,8 +1181,8 @@ export default function App() {
 
       {/* ─ MOBILE CART DRAWER ─ */}
       {showMobileCart && (
-        <div className="modal-backdrop" onClick={()=>setShowMobileCart(false)}>
-          <div className="cart-drawer" onClick={e=>e.stopPropagation()}>
+        <div className="modal-backdrop" onClick={() => setShowMobileCart(false)}>
+          <div className="cart-drawer" onClick={e => e.stopPropagation()}>
             <div className="drawer-handle" />
             <CartPanel
               cart={cart} setCart={setCart}
@@ -1029,7 +1194,7 @@ export default function App() {
               promoDiscount={promoDiscount} applyPromoCode={applyPromoCode}
               subtotal={subtotal} taxRate={taxRate} serviceRate={serviceRate}
               onCheckout={handleCheckout}
-              onClose={()=>setShowMobileCart(false)}
+              onClose={() => setShowMobileCart(false)}
             />
           </div>
         </div>
@@ -1046,24 +1211,31 @@ export default function App() {
 
       {/* ─ EDIT MENU MODAL ─ */}
       {editingMenu && (
-        <Modal onClose={()=>setEditingMenu(null)}>
+        <Modal onClose={() => setEditingMenu(null)}>
           <div className="modal-title">
             <strong>Edit Menu</strong>
-            <button className="btn-icon" onClick={()=>setEditingMenu(null)}>✕</button>
+            <button className="btn-icon" onClick={() => setEditingMenu(null)}>✕</button>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:16}}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:16 }}>
             <input className="form-input" placeholder="Nama Menu" value={menuForm.name}
-              onChange={e=>setMenuForm(p=>({...p,name:e.target.value}))} />
+              onChange={e => setMenuForm(p => ({ ...p, name: e.target.value }))} />
             <input className="form-input" type="number" placeholder="Harga" value={menuForm.price}
-              onChange={e=>setMenuForm(p=>({...p,price:e.target.value}))} />
+              onChange={e => setMenuForm(p => ({ ...p, price: e.target.value }))} />
           </div>
           <div className="modal-footer">
             <span />
             <div className="modal-footer-btns">
-              <button className="btn-ghost" onClick={()=>setEditingMenu(null)}>Batal</button>
-              <button className="btn-primary" onClick={()=>{
-                setMenuItems(p=>p.map(m=>m.id===editingMenu.id?{...m,...menuForm,price:Number(menuForm.price),image:imageMap[m.id]||m.image}:m));
-                fetch(`http://localhost:5000/api/menu/${editingMenu.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({price:Number(menuForm.price),name:menuForm.name})}).catch(()=>{});
+              <button className="btn-ghost" onClick={() => setEditingMenu(null)}>Batal</button>
+              <button className="btn-primary" onClick={() => {
+                setMenuItems(p => p.map(m => m.id === editingMenu.id
+                  ? { ...m, ...menuForm, price: Number(menuForm.price), image: imageMap[m.id] || m.image }
+                  : m
+                ));
+                // Update di Supabase
+                supabase.from("menu")
+                  .update({ name: menuForm.name, price: Number(menuForm.price) })
+                  .eq("id", editingMenu.id)
+                  .then(({ error }) => { if (error) console.error("Gagal update menu:", error); });
                 setEditingMenu(null);
                 sendToast("Menu diperbarui");
               }}>Simpan</button>
@@ -1076,8 +1248,8 @@ export default function App() {
       {showReceipt && history[0] && (
         <ReceiptModal
           order={history[0]}
-          onPrint={()=>{ printReceipt(history[0]); setShowReceipt(false); }}
-          onClose={()=>setShowReceipt(false)}
+          onPrint={() => { printReceipt(history[0]); setShowReceipt(false); }}
+          onClose={() => setShowReceipt(false)}
         />
       )}
 
